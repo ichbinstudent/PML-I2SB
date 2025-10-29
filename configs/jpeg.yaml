@@ -1,0 +1,18 @@
+# Task configuration
+task: 'jpeg'
+task_params:
+  quality: 10
+
+# Data paths
+data_dir: "./imagenet/train"
+mask_dir: null # Not needed for JPEG
+
+# Training params
+image_size: 256
+batch_size: 32
+learning_rate: 1.0e-4
+epochs: 100
+
+# Diffusion params
+noise_schedule: "symmetric"
+timesteps: 1000
