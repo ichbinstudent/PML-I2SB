@@ -18,7 +18,7 @@ def build_superres(opt: Options, sr_filter="bicubic", image_size=256):
                 scale_factor=1 / factor,
                 mode="bicubic",
                 antialias=True,
-                align_corners=False,
+                align_corners=True,
             )
 
     elif sr_filter == "pool":
@@ -34,7 +34,7 @@ def build_superres(opt: Options, sr_filter="bicubic", image_size=256):
                 scale_factor=1 / factor,
                 mode="bilinear",
                 antialias=True,
-                align_corners=False,
+                align_corners=True,
             )
 
     else:

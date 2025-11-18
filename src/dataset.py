@@ -1,13 +1,14 @@
 from torch.utils.data import Dataset
-import src.degradation as D
 import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
+from src.degradations import build_degradations
+from src.options import Options
 
 
 def get_final_transform():
     """
     Returns the final transformation (PIL -> Tensor) to be applied to
-    both X_0 (clean) and X_1 (degraded) images.
+    clean images before degradation.
     """
     return T.Compose([
         T.ToTensor(),
@@ -51,28 +52,20 @@ class I2SBImageNetWrapper(Dataset):
     X_0 is the clean image.
     X_1 is the degraded image.
     """
-    def __init__(self, base_dataset, task_name, task_config, final_transform):
+    def __init__(self, base_dataset, opt: Options, final_transform):
         """
         Args:
             base_dataset: The pre-initialized ImageFolder dataset.
-            task_name (str): The name of the restoration task 
-                             (e.g., 'jpeg', 'deblur', 'inpaint_freeform').
-            task_config (dict): A dictionary of parameters for the task.
+            opt: Options object containing degradation configuration.
             final_transform (callable): The final transform (PIL -> Tensor).
         """
         self.base_dataset = base_dataset
-        self.task_name = task_name
-        self.task_config = task_config
+        self.opt = opt
         self.final_transform = final_transform
         
-        # Pre-load mask paths for inpainting tasks
-        if 'inpaint' in self.task_name:
-            mask_dir = self.task_config.get('mask_dir')
-            if not mask_dir:
-                raise ValueError("Inpainting task requires 'mask_dir' in task_config")
-            
-            self.mask_paths = D.load_mask_paths(mask_dir)
-            print(f"Loaded {len(self.mask_paths)} masks for inpainting.")
+        # Build the degradation function based on opt.degradation
+        self.degradation_fn = build_degradations(opt, opt.degradation)
+        print(f"Built degradation: {opt.degradation}")
 
     def __len__(self):
         return len(self.base_dataset)
@@ -82,30 +75,25 @@ class I2SBImageNetWrapper(Dataset):
         # base_dataset[idx] returns (image_pil, label)
         X_0_pil, _ = self.base_dataset[idx]
 
-        # 2. Create the degraded image (X_1) based on the task
-        if self.task_name == 'jpeg':
-            quality = self.task_config.get('quality', 10)
-            X_1_pil = D.apply_jpeg(X_0_pil, quality=quality)
-        
-        elif self.task_name == 'deblur':
-            kernel_type = self.task_config.get('kernel', 'gaussian')
-            X_1_pil = D.apply_blur(X_0_pil, kernel_type=kernel_type)
-            
-        elif self.task_name == 'inpaint_freeform':
-            mask_pil = D.load_random_mask(self.mask_paths)
-            # Per the paper, fill masked regions with Gaussian noise
-            X_1_pil = D.apply_inpainting_mask(X_0_pil, mask_pil) 
-
-        elif self.task_name == 'super_resolution':
-            scale = self.task_config.get('scale', 4)
-            X_1_pil = D.apply_super_resolution_degradation(X_0_pil, scale=scale)
-        
-        else:
-            raise ValueError(f"Unknown task name: {self.task_name}")
-
-        # 3. Apply final transforms to both images
+        # 2. Convert to tensor in [-1, 1] range
         X_0 = self.final_transform(X_0_pil)
-        X_1 = self.final_transform(X_1_pil)
         
-        # 4. Return the pair
+        # 3. Add batch dimension for degradation function
+        X_0_batch = X_0.unsqueeze(0).to(self.opt.device)
+        
+        # 4. Apply degradation
+        # Inpainting returns (degraded, mask), others return just degraded
+        degradation_output = self.degradation_fn(X_0_batch)
+        
+        if isinstance(degradation_output, tuple):
+            # Inpainting case: (degraded_img, mask)
+            X_1_batch = degradation_output[0]
+        else:
+            # Other degradations
+            X_1_batch = degradation_output
+        
+        # 5. Remove batch dimension
+        X_1 = X_1_batch.squeeze(0)
+        
+        # 6. Return the pair (both in [-1, 1] range, X_1 on device, X_0 on CPU)
         return X_0, X_1

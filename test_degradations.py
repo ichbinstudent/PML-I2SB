@@ -40,7 +40,8 @@ def test_degradations():
         "inpaint-center",
         "inpaint-10-20% freeform",
         "superres-bicubic",
-        "superres-bilinear"
+        "superres-bilinear",
+        "superres-pool"
     ]
 
     # Save original for comparison
