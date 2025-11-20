@@ -3,10 +3,7 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as T
 from src.options import Options
-from src.degradations.blur import build_blur
-from src.degradations.jpeg import build_jpeg
-from src.degradations.superres import build_superres
-from src.degradations.inpainting import build_inpaint_center, build_inpaint_freeform
+from src.degradations import build_degradations
 
 def test_degradations():
     # Set up options
@@ -38,7 +35,9 @@ def test_degradations():
         "blur-uni",
         "blur-gauss",
         "inpaint-center",
-        "inpaint-10-20% freeform",
+        "inpaint-freeform1020",
+        "inpaint-freeform2030",
+        "inpaint-freeform3040",
         "superres-bicubic",
         "superres-bilinear",
         "superres-pool"
@@ -50,24 +49,7 @@ def test_degradations():
 
     for deg_type in degradation_types:
         try:
-            print(f"\nTesting {deg_type}:")
-            if deg_type.startswith("jpeg"):
-                quality = int(deg_type.split("-")[1])
-                degradation_fn = build_jpeg(quality)
-            elif deg_type.startswith("blur"):
-                kernel_type = deg_type.split("-")[1]
-                degradation_fn = build_blur(opt, kernel_type)
-            elif deg_type.startswith("inpaint"):
-                if deg_type == "inpaint-center":
-                    degradation_fn = build_inpaint_center(opt)
-                else:
-                    mask_type = deg_type.split("-", 1)[1]  # Get everything after "inpaint-"
-                    degradation_fn = build_inpaint_freeform(opt, mask_type)
-            elif deg_type.startswith("superres"):
-                sr_filter = deg_type.split("-")[1]
-                degradation_fn = build_superres(opt, sr_filter, image_size=opt.image_size)
-            else:
-                continue
+            degradation_fn = build_degradations(opt, deg_type)
 
             result = degradation_fn(sample_image)
             if isinstance(result, tuple):

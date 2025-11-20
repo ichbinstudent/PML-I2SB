@@ -1,18 +1,23 @@
-# Task configuration
-task: 'jpeg'
-task_params:
-  quality: 10
+# Degradation type
+# Format: degradation_type-parameter
+# Examples: 'jpeg-10', 'blur-gauss', 'blur-uni', 'inpaint-center', 
+#           'inpaint-freeform1020', 'superres-bicubic'
+degradation: 'jpeg-10'
 
 # Data paths
-data_dir: "./imagenet/train"
-mask_dir: null # Not needed for JPEG
+train_data_dir: "./imagenet/train"
+val_data_dir: "./imagenet/val"  # Optional: set to null or remove if no validation
 
 # Training params
 image_size: 256
 batch_size: 32
+num_workers: 8
 learning_rate: 1.0e-4
 epochs: 100
 
 # Diffusion params
 noise_schedule: "symmetric"
 timesteps: 1000
+
+# Logging
+log_dir: "logs"
