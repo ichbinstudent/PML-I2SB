@@ -168,3 +168,14 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
+def get_beta_schedule(schedule_name, num_diffusion_timesteps):
+    if schedule_name == "linear":
+        scale = 1000 / num_diffusion_timesteps
+        beta_start = scale * 0.0001
+        beta_end = scale * 0.02
+        return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
+    elif schedule_name == "const" or schedule_name == "symmetric":
+        return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
+    else:
+        raise NotImplementedError(f"Unknown beta schedule: {schedule_name}")
+

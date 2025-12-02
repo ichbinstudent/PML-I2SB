@@ -5,15 +5,14 @@ import os
 from torch.utils.data import DataLoader, random_split
 
 from src.dataset import (
-    get_base_imagenet_dataset, 
-    get_final_transform, 
+    get_base_imagenet_dataset,
     I2SBImageNetWrapper
 )
 from src.options import Options
 from src.model import get_model, load_adm_checkpoint
 from src.diffusion import DiffusionProcess
 from src.trainer import Trainer
-from src.utils import set_seed, setup_logging
+from src.utils import set_seed, setup_logging, get_beta_schedule
 
 
 def main():
@@ -27,12 +26,10 @@ def main():
     
     # Setup device, logging, and seeds
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    opt.device = device
+    opt.device = str(device)
     set_seed(42)
     setup_logging(opt.log_dir)
     
-    final_transform = get_final_transform()
-
     # Load train dataset
     train_base_dataset = get_base_imagenet_dataset(
         opt.train_data_dir, 
@@ -42,8 +39,7 @@ def main():
 
     train_dataset = I2SBImageNetWrapper(
         base_dataset=train_base_dataset,
-        opt=opt,
-        final_transform=final_transform
+        opt=opt
     )
     
     train_loader = DataLoader(
@@ -54,7 +50,6 @@ def main():
         pin_memory=True
     )
     
-    # Load validation dataset
     val_loader = None
     if opt.val_data_dir:
         val_base_dataset = get_base_imagenet_dataset(
@@ -65,8 +60,7 @@ def main():
         
         val_dataset = I2SBImageNetWrapper(
             base_dataset=val_base_dataset,
-            opt=opt,
-            final_transform=final_transform
+            opt=opt
         )
         
         val_loader = DataLoader(
@@ -78,21 +72,21 @@ def main():
         )
 
     model = get_model(opt)
-    model.load_state_dict(torch.load(opt.adm_checkpoint_path))
     model.to(device)
     load_adm_checkpoint(model, opt)
 
+    beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
+
     diffusion_process = DiffusionProcess(
-        schedule_name=opt.noise_schedule,
-        timesteps=opt.timesteps
+        beta_schedule=beta_schedule,
     )
 
     trainer = Trainer(
         model=model,
         diffusion=diffusion_process,
         data_loader=train_loader,
-        opt=opt,
-        device=device
+        device=device,
+        config=opt
     )
 
     print("Starting training...")

@@ -61,29 +61,32 @@ class TimestepBlock(nn.Module):
     """
 
     @abstractmethod
-    def forward(self, input, emb):
+    def forward(self, x, emb):
         """
-        Apply the module to `input` given `emb` timestep embeddings.
+        Apply the module to `x` given `emb` timestep embeddings.
         """
 
 
-class TimestepEmbedSequential(TimestepBlock):
+class TimestepEmbedSequential(TimestepBlock, nn.ModuleList):
     """
     A sequential module that passes timestep embeddings to the children that
     support it as an extra input.
     """
+    
+    def __init__(self, *args):
+        # nn.Sequential takes unpacked args (*args)
+        # nn.ModuleList takes a single list
+        # We pass 'args' (which is a tuple) directly to ModuleList
+        super().__init__(args)
 
-    def __init__(self, *layers):
-        super().__init__()
-        self.layers = nn.ModuleList(layers)
-
-    def forward(self, input, emb):
-        for layer in self.layers:
+    def forward(self, x, emb):
+        # nn.ModuleList is iterable, just like Sequential
+        for layer in self:
             if isinstance(layer, TimestepBlock):
-                input = layer(input, emb)
+                x = layer(x, emb)
             else:
-                input = layer(input)
-        return input
+                x = layer(x)
+        return x
 
 
 class Upsample(nn.Module):

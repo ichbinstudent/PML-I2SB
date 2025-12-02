@@ -210,3 +210,4 @@ __marimo__/
 *.png
 *.jpg
 *.jpeg
+checkpoints/*.pt
