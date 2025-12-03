@@ -74,13 +74,9 @@ class TimestepEmbedSequential(TimestepBlock, nn.ModuleList):
     """
     
     def __init__(self, *args):
-        # nn.Sequential takes unpacked args (*args)
-        # nn.ModuleList takes a single list
-        # We pass 'args' (which is a tuple) directly to ModuleList
         super().__init__(args)
 
     def forward(self, x, emb):
-        # nn.ModuleList is iterable, just like Sequential
         for layer in self:
             if isinstance(layer, TimestepBlock):
                 x = layer(x, emb)
@@ -232,7 +228,7 @@ class ResBlock(TimestepBlock):
         else:
             self.skip_connection = conv_nd(dims, channels, self.out_channels, 1)
 
-    def forward(self, input, emb):
+    def forward(self, x, emb):
         """
         Apply the block to a Tensor, conditioned on a timestep embedding.
 
@@ -241,18 +237,18 @@ class ResBlock(TimestepBlock):
         :return: an [N x C x ...] Tensor of outputs.
         """
         return checkpoint(
-            self._forward, (input, emb), self.parameters(), self.use_checkpoint
+            self._forward, (x, emb), self.parameters(), self.use_checkpoint
         )
 
-    def _forward(self, input, emb):
+    def _forward(self, x, emb):
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
-            h = in_rest(input)
+            h = in_rest(x)
             h = self.h_upd(h)
-            input = self.x_upd(input)
+            x = self.x_upd(x)
             h = in_conv(h)
         else:
-            h = self.in_layers(input)
+            h = self.in_layers(x)
         emb_out = self.emb_layers(emb).type(h.dtype)
         while len(emb_out.shape) < len(h.shape):
             emb_out = emb_out[..., None]
@@ -264,7 +260,7 @@ class ResBlock(TimestepBlock):
         else:
             h = h + emb_out
             h = self.out_layers(h)
-        return self.skip_connection(input) + h
+        return self.skip_connection(x) + h
 
 
 class AttentionBlock(nn.Module):

@@ -5,8 +5,6 @@ Implements the main training loop for I2SB.
 import logging
 import os
 import torch
-from torch.amp.grad_scaler import GradScaler
-from torch.amp.autocast_mode import autocast
 from torch.optim import AdamW
 from tqdm import tqdm
 
@@ -25,7 +23,6 @@ class Trainer:
         self.lr = config.learning_rate
         
         self.optimizer = AdamW(self.model.parameters(), lr=self.lr)
-        self.scaler = GradScaler(device=str(self.device))
 
         self.global_step = 0
         self.log_dir = config.log_dir
@@ -54,15 +51,13 @@ class Trainer:
                 batch_size = X_0.shape[0]
                 t = self.diffusion.sample_timesteps(batch_size).to(self.device)
                 
-                with autocast(device_type=str(self.device)):
-                    X_t = self.diffusion.sample_xt(X_0, X_1, t)
-                    model_output = self.model(X_t, t)
-                    loss = self.diffusion.calculate_loss(model_output, X_0, X_1, t)
+                X_t = self.diffusion.sample_xt(X_0, X_1, t)
+                model_output = self.model(X_t, t)
+                loss = self.diffusion.calculate_loss(model_output, X_0, X_t, t)
 
                 self.optimizer.zero_grad()
-                self.scaler.scale(loss).backward()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                loss.backward()
+                self.optimizer.step()
                 
 
                 pbar.set_postfix(loss=loss.item())
@@ -77,7 +72,7 @@ class Trainer:
                         X_1_sample = X_1[:n_samples]
                         X_0_sample = X_0[:n_samples]
                         
-                        X_pred = self.diffusion.sample_ddpm(self.model, X_1_sample, self.diffusion.n_steps // 100)
+                        X_pred = self.diffusion.sample_ddpm(self.model, X_1_sample, self.diffusion.n_steps)
                         
                         sample_path = os.path.join(self.sample_dir, f"sample_{self.global_step}.png")
                         utils.save_image_grid(X_1_sample, X_pred, X_0_sample, sample_path)
