@@ -13,7 +13,7 @@ from src.options import Options
 import src.utils as utils
 
 class Trainer:
-    def __init__(self, model: torch.nn.Module, diffusion: DiffusionProcess, data_loader: torch.utils.data.DataLoader, config: Options, device: torch.device):
+    def __init__(self, model: torch.nn.Module, diffusion: DiffusionProcess, data_loader: torch.utils.data.DataLoader, config: Options, device: torch.device, optimizer):
         self.model = model
         self.diffusion = diffusion
         self.data_loader = data_loader
@@ -21,7 +21,7 @@ class Trainer:
         self.device = device
 
         self.lr = config.learning_rate
-        
+
         self.optimizer = AdamW(self.model.parameters(), lr=self.lr)
 
         self.global_step = 0

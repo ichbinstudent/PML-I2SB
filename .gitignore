@@ -211,3 +211,12 @@ __marimo__/
 *.jpg
 *.jpeg
 checkpoints/*.pt
+
+# Dataset
+datasets/
+
+# Cluster misc
+logs/
+pml.def
+pml.sif
+requirements.txt

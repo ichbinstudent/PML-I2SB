@@ -112,7 +112,7 @@ class I2SBImageNetWrapper(Dataset):
     def __getitem__(self, idx):
         X_0, _ = self.base_dataset[idx]
 
-        X_0_batch = X_0.unsqueeze(0).to(self.opt.device)
+        X_0_batch = X_0.unsqueeze(0)
         degradation_output = self.degradation_fn(X_0_batch)
 
         if isinstance(degradation_output, tuple):

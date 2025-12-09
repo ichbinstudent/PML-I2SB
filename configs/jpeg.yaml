@@ -5,13 +5,13 @@
 degradation: 'jpeg-10'
 
 # Data paths
-train_data_dir: "./imagenet/train"
-adm_checkpoint_path: "./checkpoints/256x256_diffusion_uncond.pt"
+train_data_dir: "./datasets/imagenet_50k_train/"
+# adm_checkpoint_path: "./logs/checkpoints/latest_checkpoint.pth"
 
 # Training params
 image_size: 256
-batch_size: 1
-num_workers: 0
+batch_size: 2
+num_workers: 2
 learning_rate: 1.0e-4
 epochs: 100
 
@@ -21,5 +21,5 @@ timesteps: 1000
 
 # Logging
 log_dir: "logs"
-log_interval: 5
+log_interval: 1000
 

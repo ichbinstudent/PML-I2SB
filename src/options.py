@@ -17,7 +17,8 @@ class Options:
     # Data paths
     train_data_dir: str = "./imagenet/train"
     val_data_dir: Optional[str] = None
-    adm_checkpoint_path: str = "./checkpoints/256x256_diffusion_uncond.pt"
+    adm_checkpoint_path: Optional[str] = None # "./checkpoints/256x256_diffusion_uncond.pt"
+    checkpoint_path: Optional[str] = "./logs/checkpoints/latest_checkpoint.pth"
 
     # Diffusion params
     timesteps: int = 1000

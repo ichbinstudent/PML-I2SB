@@ -3,6 +3,7 @@ import yaml
 import torch
 import os
 from torch.utils.data import DataLoader, random_split
+from torch.optim import AdamW
 
 from src.dataset import (
     get_base_imagenet_dataset,
@@ -12,7 +13,7 @@ from src.options import Options
 from src.model import get_model, load_adm_checkpoint
 from src.diffusion import DiffusionProcess
 from src.trainer import Trainer
-from src.utils import set_seed, setup_logging, get_beta_schedule
+from src.utils import set_seed, setup_logging, get_beta_schedule, load_checkpoint
 
 
 def main():
@@ -68,12 +69,18 @@ def main():
             batch_size=opt.batch_size,
             shuffle=False,
             num_workers=opt.num_workers,
-            pin_memory=True
+            pin_memory=torch.cuda.is_available()
         )
 
     model = get_model(opt)
+    optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
+
     model.to(device)
-    load_adm_checkpoint(model, opt)
+
+    if opt.checkpoint_path is not None:
+        load_checkpoint(model, optimizer, opt.checkpoint_path, device)
+    if opt.adm_checkpoint_path is not None:
+        load_adm_checkpoint(model, opt)
 
     beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 
@@ -86,7 +93,8 @@ def main():
         diffusion=diffusion_process,
         data_loader=train_loader,
         device=device,
-        config=opt
+        config=opt,
+        optimizer=optimizer
     )
 
     print("Starting training...")
