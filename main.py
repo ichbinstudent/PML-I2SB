@@ -78,8 +78,10 @@ def main():
     model.to(device)
 
     if opt.checkpoint_path is not None:
+        print("Loading checkpoint...")
         load_checkpoint(model, optimizer, opt.checkpoint_path, device)
     if opt.adm_checkpoint_path is not None:
+        print("Loading pretrained UNet weights...")
         load_adm_checkpoint(model, opt)
 
     beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)

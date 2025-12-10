@@ -176,6 +176,16 @@ def get_beta_schedule(schedule_name, num_diffusion_timesteps):
         return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
     elif schedule_name == "const" or schedule_name == "symmetric":
         return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
+    elif schedule_name == "cosine":
+            def alpha_bar(t):
+                return np.cos((t + 0.008) / 1.008 * np.pi / 2) ** 2
+            max_beta=0.999
+            betas = []
+            for i in range(num_diffusion_timesteps):
+                t1 = i / num_diffusion_timesteps
+                t2 = (i + 1) / num_diffusion_timesteps
+                betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+            return torch.tensor(betas, dtype=torch.float64)
     else:
         raise NotImplementedError(f"Unknown beta schedule: {schedule_name}")
 

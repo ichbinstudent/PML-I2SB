@@ -35,22 +35,22 @@ def get_model(config: Options) -> torch.nn.Module:
         torch.nn.Module: The U-Net model.
     """
     image_size = config.image_size
-    if image_size != 256:
-        logging.warning(
-            f"Model config is optimized for 256x256, but image_size is {image_size}."
-        )
+    #if image_size != 256:
+    #    logging.warning(
+    #        f"Model config is optimized for 256x256, but image_size is {image_size}."
+    #    )
 
     adm_config = model_and_diffusion_defaults()
 
     adm_config.update({
         'image_size': config.image_size,
-        'num_channels': 256,
-        'num_res_blocks': 2,
-        'attention_resolutions': '32,16,8',
+        'num_channels': 128,
+        'num_head_channels': 64,
+        'num_res_blocks': 3,
         'learn_sigma': True,
-        'use_scale_shift_norm': True,
         'class_cond': False,
-        'resblock_updown': True
+        'resblock_updown': True,
+        'use_new_attention_order': True,
     })
     
     model = create_model(
@@ -62,12 +62,9 @@ def get_model(config: Options) -> torch.nn.Module:
         use_checkpoint=bool(adm_config.get('use_checkpoint', False)),
         attention_resolutions=str(adm_config['attention_resolutions']),
         num_heads=int(adm_config.get('num_heads', 4)),
-        num_head_channels=int(adm_config.get('num_head_channels', 64)),
         num_heads_upsample=-1,
-        use_scale_shift_norm=bool(adm_config['use_scale_shift_norm']),
+        use_scale_shift_norm=bool(adm_config.get('use_scale_shift_norm', False)),
         dropout=float(adm_config['dropout']),
-        resblock_updown=bool(adm_config['resblock_updown']),
-        use_fp16=bool(adm_config['use_fp16']),
     )
     
     logging.info("Created ADM U-Net model.")

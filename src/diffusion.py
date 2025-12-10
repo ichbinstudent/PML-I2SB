@@ -86,7 +86,7 @@ class DiffusionProcess:
         return (model_output - target).pow(2).mean()
 
     @torch.no_grad()
-    def sample_ddpm(self, model, x1, n_steps, precision: float = .1) -> torch.Tensor:
+    def sample_ddpm(self, model, x1, n_steps, precision: float = 1) -> torch.Tensor:
         """
         Sample using I2SB reverse process (Algorithm 2 from the paper).
         """

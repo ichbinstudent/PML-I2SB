@@ -1,5 +1,3 @@
-# Copied from:
-# https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/nn.py
 """
 Various utilities for neural networks.
 """
@@ -17,8 +15,8 @@ class SiLU(nn.Module):
 
 
 class GroupNorm32(nn.GroupNorm):
-    def forward(self, input):
-        return super().forward(input.float()).type(input.dtype)
+    def forward(self, x):
+        return super().forward(x.float()).type(x.dtype)
 
 
 def conv_nd(dims, *args, **kwargs):
