@@ -2,24 +2,13 @@ import numpy as np
 import io
 import logging
 import torch
-from PIL import Image
-from typing import Union
+from typing import Literal
 from src.options import Options
 
 
-def bbox2mask(img_shape: tuple[int, int, int], bbox: tuple[int, int, int, int], dtype='uint8') -> np.ndarray:
-    """Generate mask in ndarray from bbox.
-
-    The returned mask has the shape of (h, w, 1). '1' indicates the
-    hole and '0' indicates the valid regions.
-
-    Args:
-        img_shape (tuple[int]): The size of the image.
-        bbox (tuple[int]): Configuration tuple, (top, left, height, width)
-        dtype (str): Indicate the data type of returned masks. Default: 'uint8'
-
-    Return:
-        numpy.ndarray: Mask in the shape of (h, w, 1).
+def bbox2mask(img_shape: tuple[int, int], bbox: tuple[int, int, int, int], dtype='uint8') -> np.ndarray:
+    """
+    Generate mask in ndarray from bbox.
     """
 
     height, width = img_shape[:2]
@@ -30,7 +19,7 @@ def bbox2mask(img_shape: tuple[int, int, int], bbox: tuple[int, int, int, int], 
     return mask
 
 
-def load_freeform_masks():
+def load_freeform_masks() -> dict[str, np.ndarray]:
     """Loads freeform masks from a compressed npz file.
 
     Returns:
@@ -64,13 +53,13 @@ def load_freeform_masks():
 
 _freeform_masks = load_freeform_masks()  # Preload masks at module import.
 
-def get_center_mask(image_size: tuple[int, int]) -> 'torch.Tensor':
+def get_center_mask(image_size: tuple[int, int]) -> torch.Tensor:
     h, w = image_size
     mask = bbox2mask(image_size, (h//4, w//4, h//2, w//2))
     return torch.from_numpy(mask).permute(2,0,1)
 
 def build_inpaint_center(opt: Options):
-    center_mask = get_center_mask([opt.image_size, opt.image_size])[None,...] # [1,1,256,256]
+    center_mask = get_center_mask((opt.image_size, opt.image_size))[None,...] # [1,1,256,256]
     center_mask = center_mask.to(opt.device)
 
     def inpaint_center(img):
@@ -80,7 +69,7 @@ def build_inpaint_center(opt: Options):
 
     return inpaint_center
 
-def build_inpaint_freeform(opt: Options, mask_type: Union['10-20% freeform', '20-30% freeform', '30-40% freeform']):
+def build_inpaint_freeform(opt: Options, mask_type: Literal['10-20% freeform', '20-30% freeform', '30-40% freeform']):
     assert mask_type in ['10-20% freeform', '20-30% freeform', '30-40% freeform']
 
     freeform_masks = _freeform_masks[mask_type]

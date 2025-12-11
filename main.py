@@ -74,12 +74,13 @@ def main():
 
     model = get_model(opt)
     optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
+    start_epoch = 0
 
     model.to(device)
 
     if opt.checkpoint_path is not None:
         print("Loading checkpoint...")
-        load_checkpoint(model, optimizer, opt.checkpoint_path, device)
+        start_epoch = load_checkpoint(model, optimizer, opt.checkpoint_path, device)
     if opt.adm_checkpoint_path is not None:
         print("Loading pretrained UNet weights...")
         load_adm_checkpoint(model, opt)
@@ -96,11 +97,12 @@ def main():
         data_loader=train_loader,
         device=device,
         config=opt,
-        optimizer=optimizer
+        optimizer=optimizer,
+        val_loader=val_loader
     )
 
     print("Starting training...")
-    trainer.train(epochs=opt.epochs)
+    trainer.train(epochs=opt.epochs, start_epoch=start_epoch)
     print("Training complete.")
 
 if __name__ == "__main__":

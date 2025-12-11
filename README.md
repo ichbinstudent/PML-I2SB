@@ -1,0 +1,1 @@
+`apptainer run --bind /home/space/datasets/imagenet/2012:$PWD/datasets/imagenet --bind $PWD/checkpoints/imagenet64_uncond_100M_1500K.pt:$PWD/checkpoints/imagenet64_uncond_100M_1500K.pt --nv pml.sif python main.py --config ./configs/jpeg.yaml`

@@ -7,12 +7,9 @@ import torch
 import torchvision.utils as vutils
 
 
-def setup_logging(log_dir):
+def setup_logging(log_dir: str):
     """
     Configures the logging module to output to both console and a file.
-    
-    Args:
-        log_dir (str): The directory where the log file will be saved.
     """
     # Create the log directory if it doesn't exist
     os.makedirs(log_dir, exist_ok=True)
@@ -51,14 +48,9 @@ def setup_logging(log_dir):
     
     logging.info("Logging setup complete. Logs will be saved to %s", log_filename)
 
-def set_seed(seed, deterministic=True):
+def set_seed(seed: int, deterministic: bool = True):
     """
     Set random seeds for reproducibility.
-    
-    Args:
-        seed (int): The seed value.
-        deterministic (bool): Whether to use deterministic cuDNN settings.
-                              (Can slow down training).
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -73,16 +65,9 @@ def set_seed(seed, deterministic=True):
             
     logging.info(f"Set random seed to {seed}")
 
-def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
+def save_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer, epoch: int, checkpoint_dir: str, is_best: bool = False):
     """
     Saves a model checkpoint.
-    
-    Args:
-        model (torch.nn.Module): The model to save.
-        optimizer (torch.optim.Optimizer): The optimizer to save.
-        epoch (int): The current epoch number.
-        checkpoint_dir (str): Directory to save the checkpoint.
-        is_best (bool): Whether this is the best performing model so far.
     """
     os.makedirs(checkpoint_dir, exist_ok=True)
     
@@ -103,16 +88,10 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
         torch.save(state, best_filepath)
         logging.info(f"Saved best model checkpoint to {best_filepath}")
 
-def load_checkpoint(model, optimizer, filepath, device):
+def load_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer, filepath: str, device: torch.device) -> int:
     """
     Loads a model checkpoint.
     
-    Args:
-        model (torch.nn.Module): The model to load state into.
-        optimizer (torch.optim.Optimizer): The optimizer to load state into.
-        filepath (str): Path to the checkpoint file.
-        device (torch.device): The device to map the loaded tensors to.
-
     Returns:
         int: The epoch to start training from (epoch + 1).
     """
@@ -130,22 +109,15 @@ def load_checkpoint(model, optimizer, filepath, device):
     
     return start_epoch
 
-def unnormalize_to_zero_one(tensor):
+def unnormalize_to_zero_one(tensor: torch.Tensor) -> torch.Tensor:
     """
     Un-normalizes a tensor from [-1, 1] to [0, 1].
     """
     return (tensor + 1.0) * 0.5
 
-def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
+def save_image_grid(X_1: torch.Tensor, X_pred: torch.Tensor, X_0: torch.Tensor, filepath: str, n_images: int = 8):
     """
     Saves a grid of images: [Degraded, Predicted, Clean].
-    
-    Args:
-        X_1 (torch.Tensor): The batch of degraded images (Input).
-        X_pred (torch.Tensor): The batch of model predictions (Output).
-        X_0 (torch.Tensor): The batch of clean images (Reference).
-        filepath (str): Path to save the PNG image.
-        n_images (int): Number of images from the batch to save.
     """
     
     # Take the first n_images from the batch
@@ -168,7 +140,7 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
-def get_beta_schedule(schedule_name, num_diffusion_timesteps):
+def get_beta_schedule(schedule_name: str, num_diffusion_timesteps: int) -> torch.Tensor:
     if schedule_name == "linear":
         scale = 1000 / num_diffusion_timesteps
         beta_start = scale * 0.0001

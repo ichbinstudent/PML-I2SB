@@ -43,7 +43,7 @@ class SimpleImageDataset(Dataset):
         return image, 0  # Return 0 as dummy label for compatibility
 
 
-def get_base_imagenet_dataset(data_dir, image_size, is_train=True):
+def get_base_imagenet_dataset(data_dir: str, image_size: int, is_train: bool = True):
     """
     Creates the base ImageNet dataset from a folder path.
     Tries ImageFolder first (for standard ImageNet structure),
@@ -109,7 +109,7 @@ class I2SBImageNetWrapper(Dataset):
     def __len__(self):
         return len(self.base_dataset)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         X_0, _ = self.base_dataset[idx]
 
         X_0_batch = X_0.unsqueeze(0)
