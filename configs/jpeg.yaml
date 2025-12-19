@@ -4,9 +4,15 @@
 #           'inpaint-freeform1020', 'superres-bicubic'
 degradation: 'jpeg-10'
 
+# Train or Validate
+mode: 'train'  # options: 'train', 'validate'
+
+
 # Data paths
 train_data_dir: "./datasets/imagenet_50k_train/"
 adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+#TODO: add validation dataset path
+val_data_dir: None
 
 # Training params
 image_size: 64

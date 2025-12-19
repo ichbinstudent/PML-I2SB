@@ -44,7 +44,7 @@ class Trainer:
                         desc=f"Epoch {epoch + 1}/{epochs}", 
                         leave=True)
             
-            for X_0, X_1 in pbar:
+            for X_0, X_1, _ in pbar:
                 X_0 = X_0.to(self.device)
                 X_1 = X_1.to(self.device)
                 

@@ -110,7 +110,7 @@ class I2SBImageNetWrapper(Dataset):
         return len(self.base_dataset)
 
     def __getitem__(self, idx):
-        X_0, _ = self.base_dataset[idx]
+        X_0, label = self.base_dataset[idx]
 
         X_0_batch = X_0.unsqueeze(0)
         degradation_output = self.degradation_fn(X_0_batch)
@@ -122,4 +122,4 @@ class I2SBImageNetWrapper(Dataset):
 
         X_1 = X_1_batch.squeeze(0)
 
-        return X_0, X_1
+        return X_0, X_1, label

@@ -123,7 +123,9 @@ def load_checkpoint(model, optimizer, filepath, device):
     checkpoint = torch.load(filepath, map_location=device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    # Optimizer is None for validation mode
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch'] + 1
     
     logging.info(f"Loaded checkpoint from {filepath}. Resuming from epoch {start_epoch}")

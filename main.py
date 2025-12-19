@@ -14,6 +14,7 @@ from src.model import get_model, load_adm_checkpoint
 from src.diffusion import DiffusionProcess
 from src.trainer import Trainer
 from src.utils import set_seed, setup_logging, get_beta_schedule, load_checkpoint
+from src.validator import Validator
 
 
 def main():
@@ -31,28 +32,62 @@ def main():
     set_seed(42)
     setup_logging(opt.log_dir)
     
-    # Load train dataset
-    train_base_dataset = get_base_imagenet_dataset(
-        opt.train_data_dir, 
-        opt.image_size,
-        is_train=True
-    )
+    if opt.mode == 'train':
+        print("Mode: Training")
+        # Load train dataset
+        train_base_dataset = get_base_imagenet_dataset(
+            opt.train_data_dir, 
+            opt.image_size,
+            is_train=True
+        )
 
-    train_dataset = I2SBImageNetWrapper(
-        base_dataset=train_base_dataset,
-        opt=opt
-    )
+        train_dataset = I2SBImageNetWrapper(
+            base_dataset=train_base_dataset,
+            opt=opt
+        )
+        
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=opt.batch_size,
+            shuffle=True,
+            num_workers=opt.num_workers,
+            pin_memory=True
+        )
+
+        model = get_model(opt)
+        optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
+
+        model.to(device)
+
+        if opt.checkpoint_path is not None:
+            print("Loading checkpoint...")
+            load_checkpoint(model, optimizer, opt.checkpoint_path, device)
+        if opt.adm_checkpoint_path is not None:
+            print("Loading pretrained UNet weights...")
+            load_adm_checkpoint(model, opt)
+
+        beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
+
+        diffusion_process = DiffusionProcess(
+            beta_schedule=beta_schedule,
+        )
+
+        trainer = Trainer(
+            model=model,
+            diffusion=diffusion_process,
+            data_loader=train_loader,
+            device=device,
+            config=opt,
+            optimizer=optimizer
+        )
+
+        print("Starting training...")
+        trainer.train(epochs=opt.epochs)
+        print("Training complete.")
     
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=opt.batch_size,
-        shuffle=True,
-        num_workers=opt.num_workers,
-        pin_memory=True
-    )
-    
-    val_loader = None
-    if opt.val_data_dir:
+    elif opt.mode == 'validate':
+        print("Mode: Validation")
+        # Load validation dataset
         val_base_dataset = get_base_imagenet_dataset(
             opt.val_data_dir,
             opt.image_size,
@@ -72,36 +107,29 @@ def main():
             pin_memory=torch.cuda.is_available()
         )
 
-    model = get_model(opt)
-    optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
 
-    model.to(device)
+        # get the trained model for validation
+        model = get_model(opt)
+        load_checkpoint(model, None, opt.checkpoint_path, device)
+        trained_model = model
+        trained_model.to(device)
+        beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 
-    if opt.checkpoint_path is not None:
-        print("Loading checkpoint...")
-        load_checkpoint(model, optimizer, opt.checkpoint_path, device)
-    if opt.adm_checkpoint_path is not None:
-        print("Loading pretrained UNet weights...")
-        load_adm_checkpoint(model, opt)
+        diffusion_process = DiffusionProcess(
+            beta_schedule=beta_schedule,
+        )
 
-    beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
+        validator = Validator(
+            model=trained_model,
+            diffusion=diffusion_process,
+            data_loader=val_loader,
+            config=opt,
+            device=device
+        )
 
-    diffusion_process = DiffusionProcess(
-        beta_schedule=beta_schedule,
-    )
-
-    trainer = Trainer(
-        model=model,
-        diffusion=diffusion_process,
-        data_loader=train_loader,
-        device=device,
-        config=opt,
-        optimizer=optimizer
-    )
-
-    print("Starting training...")
-    trainer.train(epochs=opt.epochs)
-    print("Training complete.")
+        print("Starting validation...")
+        validator.validate()
+        print("Validation complete.")
 
 if __name__ == "__main__":
     main()
