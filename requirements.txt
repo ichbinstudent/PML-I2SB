@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+accelerate>=0.25.0
+diffusers>=0.35.2
+matplotlib>=3.10.7
+pillow>=11.0.0
+pyyaml>=6.0.3
+tensorflow>=2.20.0
+torch>=2.7.0
+torchvision>=0.21.0
+clean_fid
+transformers
