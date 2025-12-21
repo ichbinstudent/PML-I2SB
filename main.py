@@ -4,6 +4,7 @@ import torch
 import os
 from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
+from accelerate import Accelerator
 
 from src.dataset import (
     get_base_imagenet_dataset,
@@ -25,8 +26,9 @@ def main():
     # Load options from YAML
     opt = Options.from_yaml(args.config)
     
-    # Setup device, logging, and seeds
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Initialize Accelerator for multi-GPU training
+    accelerator = Accelerator()
+    device = accelerator.device
     opt.device = str(device)
     set_seed(42)
     setup_logging(opt.log_dir)
@@ -76,14 +78,17 @@ def main():
     optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
     start_epoch = 0
 
-    model.to(device)
-
     if opt.checkpoint_path is not None:
         print("Loading checkpoint...")
         start_epoch = load_checkpoint(model, optimizer, opt.checkpoint_path, device)
     if opt.adm_checkpoint_path is not None:
         print("Loading pretrained UNet weights...")
         load_adm_checkpoint(model, opt)
+
+    # Prepare model, optimizer, and dataloaders with Accelerator
+    model, optimizer, train_loader = accelerator.prepare(model, optimizer, train_loader)
+    if val_loader is not None:
+        val_loader = accelerator.prepare(val_loader)
 
     beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 
@@ -98,7 +103,8 @@ def main():
         device=device,
         config=opt,
         optimizer=optimizer,
-        val_loader=val_loader
+        val_loader=val_loader,
+        accelerator=accelerator
     )
 
     print("Starting training...")
