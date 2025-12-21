@@ -5,7 +5,7 @@
 degradation: 'jpeg-10'
 
 # Train or Validate
-mode: 'train'  # options: 'train', 'validate'
+mode: 'validate'  # options: 'train', 'validate'
 
 
 # Data paths
