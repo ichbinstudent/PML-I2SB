@@ -216,8 +216,6 @@ checkpoints/*.pt
 datasets/
 
 # Cluster misc
-logs/
-logs_run_2/
+logs*/
 pml.def
 pml.sif
-requirements.txt
