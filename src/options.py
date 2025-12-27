@@ -5,6 +5,7 @@ from typing import Optional
 class Options:
     # Default values
     image_size: int = 256
+    stats_image_size: int = 256
     device: str = "cuda"
     degradation: str = "jpeg-10"
 
@@ -14,11 +15,14 @@ class Options:
     learning_rate: float = 1e-4
     epochs: int = 100
 
+    mode : str = "train"  # "train" or "validate"
+
     # Data paths
     train_data_dir: str = "./imagenet/train"
     val_data_dir: Optional[str] = None
     adm_checkpoint_path: Optional[str] = None # "./checkpoints/256x256_diffusion_uncond.pt"
-    checkpoint_path: Optional[str] = None # "./logs/checkpoints/latest_checkpoint.pth"
+    checkpoint_path: Optional[str] = None # "./logs/checkpoints/latest_checkpoint.pt
+    imagenet_stats_path: str = "./imagenet/imagenet_stats.npz" # Path to ImageNet statistics for FID calculation
 
     # Diffusion params
     timesteps: int = 1000

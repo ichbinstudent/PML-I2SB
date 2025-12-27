@@ -217,7 +217,9 @@ datasets/
 
 # Cluster misc
 logs/
-logs_run_2/
+logs_*/
 pml.def
 pml.sif
 .DS_Store
+imagenet/
+

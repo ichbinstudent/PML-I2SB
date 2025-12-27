@@ -71,7 +71,7 @@ def get_center_mask(image_size: tuple[int, int]) -> 'torch.Tensor':
 
 def build_inpaint_center(opt: Options):
     center_mask = get_center_mask([opt.image_size, opt.image_size])[None,...] # [1,1,256,256]
-    center_mask = center_mask.to(opt.device)
+    # center_mask = center_mask.to(opt.device)
 
     def inpaint_center(img):
         # img: [-1,1]
@@ -84,7 +84,11 @@ def build_inpaint_freeform(opt: Options, mask_type: Union['10-20% freeform', '20
     assert mask_type in ['10-20% freeform', '20-30% freeform', '30-40% freeform']
 
     freeform_masks = _freeform_masks[mask_type]
-    freeform_masks = torch.from_numpy(freeform_masks).to(opt.device)
+    # Convert to tensor, add channel dim, and convert to float for interpolation/calculation
+    freeform_masks = torch.from_numpy(freeform_masks).unsqueeze(1).float()
+    
+    if freeform_masks.shape[-1] != opt.image_size:
+        freeform_masks = torch.nn.functional.interpolate(freeform_masks, size=(opt.image_size, opt.image_size), mode='nearest')
 
     def inpaint_freeform(img):
         index = np.random.randint(freeform_masks.shape[0], size=img.shape[0])
