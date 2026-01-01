@@ -51,6 +51,7 @@ def get_model(config: Options) -> torch.nn.Module:
         'class_cond': False,
         'resblock_updown': True,
         'use_new_attention_order': True,
+        'use_checkpoint': config.use_checkpoint,
     })
     
     model = create_model(

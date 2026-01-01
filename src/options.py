@@ -23,10 +23,25 @@ class Options:
     adm_checkpoint_path: Optional[str] = None # "./checkpoints/256x256_diffusion_uncond.pt"
     checkpoint_path: Optional[str] = None # "./logs/checkpoints/latest_checkpoint.pt
     imagenet_stats_path: str = "./imagenet/imagenet_stats.npz" # Path to ImageNet statistics for FID calculation
+    image_names_file: Optional[str] = None  # Path to text file with allowed image names for validation
+
+    dataset_fraction: float = 0.01
+
 
     # Diffusion params
     timesteps: int = 1000
     noise_schedule: str = "linear"
+
+    # Optimization
+    mixed_precision: str = "no" # "no", "fp16", "bf16"
+    gradient_accumulation_steps: int = 1
+    use_checkpoint: bool = False # Gradient checkpointing
+    use_compile: bool = False # torch.compile
+    dist_backend: str = "nccl" # "nccl" or "gloo"
+
+    # EMA
+    use_ema: bool = True
+    ema_decay: float = 0.999
 
     # Logging
     log_dir: str = "logs"
