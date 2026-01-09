@@ -70,8 +70,6 @@ class Validator:
         print("device_count=", torch.cuda.device_count())
         for i in range(torch.cuda.device_count()):
             print(i, torch.cuda.get_device_name(i))
-        if True:
-            return
 
         batch_idx = 0
         total_correct = 0
@@ -91,16 +89,15 @@ class Validator:
             pred_denorm = unnormalize_to_zero_one(pred)
 
             # Save images for FID calculation
-            # for i in range(X_1.shape[0]):
-            #     fake_path = os.path.join(
-            #         self.fake_dir, 
-            #         f"fake_{self.accelerator.process_index}_{batch_idx}_{i}.png"
-            #     )
-            #     save_image(pred_denorm[i], fake_path)
+            for i in range(X_1.shape[0]):
+                fake_path = os.path.join(
+                    self.fake_dir, 
+                    f"fake_{self.accelerator.process_index}_{batch_idx}_{i}.png"
+                )
+                save_image(pred_denorm[i], fake_path)
 
             # Classifier on predicted images
             # Convert to PIL images
-
             to_pil = ToPILImage()
             pil_images = [to_pil(img.cpu()) for img in pred_denorm]
 
