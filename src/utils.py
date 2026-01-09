@@ -70,10 +70,13 @@ def set_seed(seed, deterministic=True):
         if deterministic:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+        else:
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.benchmark = True
             
-    logging.info(f"Set random seed to {seed}")
+    logging.info(f"Set random seed to {seed}. Deterministic: {deterministic}")
 
-def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
+def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False, keep_checkpoint=False):
     """
     Saves a model checkpoint.
     
@@ -83,6 +86,7 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
         epoch (int): The current epoch number.
         checkpoint_dir (str): Directory to save the checkpoint.
         is_best (bool): Whether this is the best performing model so far.
+        keep_checkpoint (bool): Whether to save a separate file for this epoch.
     """
     os.makedirs(checkpoint_dir, exist_ok=True)
     
@@ -102,6 +106,12 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
         best_filepath = os.path.join(checkpoint_dir, 'best_model.pth')
         torch.save(state, best_filepath)
         logging.info(f"Saved best model checkpoint to {best_filepath}")
+
+    # Save a separate file for this epoch if requested
+    if keep_checkpoint:
+        epoch_filepath = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.pth')
+        torch.save(state, epoch_filepath)
+        logging.info(f"Saved checkpoint to {epoch_filepath}")
 
 def load_checkpoint(model, optimizer, filepath, device):
     """

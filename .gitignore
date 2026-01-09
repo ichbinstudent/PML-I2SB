@@ -212,6 +212,9 @@ __marimo__/
 *.jpeg
 checkpoints/*.pt
 
+# Checkpoint files
+checkpoints/*
+
 # Dataset
 datasets/
 
@@ -222,4 +225,7 @@ pml.def
 pml.sif
 .DS_Store
 imagenet/
+job_*.out
+job_*.err
 
+fid_stats/fid_imagenet_50K_75.npz

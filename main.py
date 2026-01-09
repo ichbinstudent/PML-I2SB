@@ -1,12 +1,23 @@
+import os
+
+# Fix for virtualized GPUs (e.g. MIG, containerized) where PCI IDs might be shared/confused
+# These must be set BEFORE importing torch
+os.environ["NCCL_P2P_DISABLE"] = "1"
+os.environ["NCCL_IB_DISABLE"] = "1"
+os.environ["NCCL_NVLS_ENABLE"] = "0"
+os.environ["NCCL_SHM_DISABLE"] = "1"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+
 import argparse
 import yaml
 import torch
-import os
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torch.optim import AdamW
+from accelerate import Accelerator, DistributedDataParallelKwargs
 
 from src.dataset import (
     get_base_imagenet_dataset,
+    get_base_imagenet_val_dataset,
     I2SBImageNetWrapper
 )
 from src.options import Options
@@ -26,14 +37,25 @@ def main():
     # Load options from YAML
     opt = Options.from_yaml(args.config)
     
-    # Setup device, logging, and seeds
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Setup accelerator
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=False)
+    accelerator = Accelerator(
+        mixed_precision=opt.mixed_precision,
+        gradient_accumulation_steps=opt.gradient_accumulation_steps,
+        kwargs_handlers=[ddp_kwargs]
+    )
+
+    device = accelerator.device
     opt.device = str(device)
+    
+    # Setup logging and seeds
     set_seed(42)
-    setup_logging(opt.log_dir)
+    if accelerator.is_main_process:
+        setup_logging(opt.log_dir)
     
     if opt.mode == 'train':
-        print("Mode: Training")
+        if accelerator.is_main_process:
+            print("Mode: Training")
         # Load train dataset
         train_base_dataset = get_base_imagenet_dataset(
             opt.train_data_dir, 
@@ -57,14 +79,20 @@ def main():
         model = get_model(opt)
         optimizer = AdamW(model.parameters(), lr=opt.learning_rate)
 
-        model.to(device)
+        # model.to(device) # Handled by accelerate
 
         if opt.checkpoint_path is not None:
-            print("Loading checkpoint...")
+            if accelerator.is_main_process:
+                print("Loading checkpoint...")
             load_checkpoint(model, optimizer, opt.checkpoint_path, device)
         if opt.adm_checkpoint_path is not None:
-            print("Loading pretrained UNet weights...")
+            if accelerator.is_main_process:
+                print("Loading pretrained UNet weights...")
             load_adm_checkpoint(model, opt)
+
+        # Ensure model parameters are contiguous to avoid DDP stride warnings
+        for param in model.parameters():
+            param.data = param.data.contiguous()
 
         beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 
@@ -78,22 +106,30 @@ def main():
             data_loader=train_loader,
             device=device,
             config=opt,
-            optimizer=optimizer
+            optimizer=optimizer,
+            accelerator=accelerator
         )
 
-        print("Starting training...")
+        if accelerator.is_main_process:
+            print("Starting training...")
         trainer.train(epochs=opt.epochs)
-        print("Training complete.")
+        if accelerator.is_main_process:
+            print("Training complete.")
     
     elif opt.mode == 'validate':
-        print("Mode: Validation")
+        if accelerator.is_main_process:
+            print("Mode: Validation")
+        
         # Load validation dataset
-        val_base_dataset = get_base_imagenet_dataset(
+        val_base_dataset = None
+
+        val_base_dataset = get_base_imagenet_val_dataset(
             opt.val_data_dir,
             opt.image_size,
-            is_train=False
+            opt.image_names_file,
+            opt.degradation,
         )
-        
+
         val_dataset = I2SBImageNetWrapper(
             base_dataset=val_base_dataset,
             opt=opt
@@ -106,13 +142,23 @@ def main():
             num_workers=opt.num_workers,
             pin_memory=torch.cuda.is_available()
         )
-
+        val_loader = accelerator.prepare(val_loader)
 
         # get the trained model for validation
-        model = get_model(opt)
-        load_checkpoint(model, None, opt.checkpoint_path, device)
-        trained_model = model
-        trained_model.to(device)
+        trained_model = get_model(opt)
+        if accelerator.is_main_process:
+            print("Loading trained model checkpoint for validation...")
+
+        if opt.adm_checkpoint_path is not None:
+            if accelerator.is_main_process:
+                print("Loading pretrained UNet weights...")
+            load_adm_checkpoint(trained_model, opt)
+
+        if opt.checkpoint_path is not None:
+            if accelerator.is_main_process:
+                print("Loading checkpoint...")
+            load_checkpoint(trained_model, None, opt.checkpoint_path, device)
+
         beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 
         diffusion_process = DiffusionProcess(
@@ -123,8 +169,8 @@ def main():
             model=trained_model,
             diffusion=diffusion_process,
             data_loader=val_loader,
-            config=opt,
-            device=device
+            opt=opt,
+            accelerator=accelerator
         )
 
         print("Starting validation...")

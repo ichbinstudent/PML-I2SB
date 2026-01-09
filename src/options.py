@@ -5,7 +5,7 @@ from typing import Optional
 class Options:
     # Default values
     image_size: int = 256
-    stats_image_size: int = 256
+    stats_image_size: Optional [int] = None
     device: str = "cuda"
     degradation: str = "jpeg-10"
 
@@ -22,7 +22,7 @@ class Options:
     val_data_dir: Optional[str] = None
     adm_checkpoint_path: Optional[str] = None # "./checkpoints/256x256_diffusion_uncond.pt"
     checkpoint_path: Optional[str] = None # "./logs/checkpoints/latest_checkpoint.pt
-    imagenet_stats_path: str = "./imagenet/imagenet_stats.npz" # Path to ImageNet statistics for FID calculation
+    imagenet_stats_path: Optional[str] = None # Path to ImageNet statistics for FID calculation
     image_names_file: Optional[str] = None  # Path to text file with allowed image names for validation
 
     dataset_fraction: float = 0.01
@@ -37,7 +37,7 @@ class Options:
     gradient_accumulation_steps: int = 1
     use_checkpoint: bool = False # Gradient checkpointing
     use_compile: bool = False # torch.compile
-    dist_backend: str = "nccl" # "nccl" or "gloo"
+    dist_backend: str = "gloo" # "nccl" or "gloo"
 
     # EMA
     use_ema: bool = True

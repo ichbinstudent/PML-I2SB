@@ -86,10 +86,11 @@ def get_base_imagenet_dataset(data_dir, image_size, is_train=True):
 
     return base_dataset
 
-def get_base_imagenet_val10K_dataset(
+def get_base_imagenet_val_dataset(
     data_dir,
     image_size,
     image_names_file,
+    degradation,
 ):
     """
     Creates an ImageNet dataset but only keeps images listed in image_names_file.
@@ -121,27 +122,27 @@ def get_base_imagenet_val10K_dataset(
     base_dataset = ImageFolder(root=data_dir, transform=pre_transform)
     print(f"Using ImageFolder with {len(base_dataset.classes)} classes")
 
-    # Load allowed image names
-    with open(image_names_file, "r") as f:
-        allowed_names = set(line.strip() for line in f if line.strip())
+    # return full dataset for super-resolution tasks
+    if "superres" in degradation:
+        return base_dataset
+    # filter dataset for other tasks
+    else:
+        # Load allowed image names
+        with open(image_names_file, "r") as f:
+            allowed_names = set(line.strip() for line in f if line.strip())
 
-    print(f"Filtering dataset using {len(allowed_names)} image names")
+        print(f"Filtering dataset using {len(allowed_names)} image names")
 
-    # Filter indices
-    selected_indices = [
-        idx
-        for idx, (path, _) in enumerate(base_dataset.samples)
-        if os.path.basename(path) in allowed_names
-    ]
+        # Filter indices
+        selected_indices = [
+            idx
+            for idx, (path, _) in enumerate(base_dataset.samples)
+            if os.path.basename(path) in allowed_names
+        ]
 
-    print(f"Selected {len(selected_indices)} images")
-    
-    selected_indices = sorted(
-        selected_indices,
-        key=lambda idx: base_dataset.samples[idx][0]
-    )
+        print(f"Selected {len(selected_indices)} images")
 
-    return Subset(base_dataset, selected_indices)
+        return Subset(base_dataset, selected_indices)
 
 
 class I2SBImageNetWrapper(Dataset):
