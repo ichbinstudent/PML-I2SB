@@ -10,20 +10,19 @@ mode: 'validate'  # options: 'train', 'validate'
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set_small/"
-adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+#adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 val_data_dir: "./datasets/imagenet/val_set/"
 checkpoint_path: "./checkpoints/superres_latest_checkpoint.pth"
 image_names_file: "./ctest10k.txt"
-imagenet_stats_path: "./imagenet/imagenet_stats.npz"
 
 # Validation params
 image_size: 64
-batch_size: 64
-num_workers: 4
+batch_size: 128
+num_workers: 2
 
 # Diffusion params
 noise_schedule: "linear"
-timesteps: 1000
+timesteps: 2
 
 # Logging
 log_dir: "logs_validation/superres_bicubic"

@@ -66,10 +66,6 @@ class Validator:
             logging.info("Starting validation...")
         self.model.eval()
 
-        print("CUDA_VISIBLE_DEVICES=", os.environ.get("CUDA_VISIBLE_DEVICES"))
-        print("device_count=", torch.cuda.device_count())
-        for i in range(torch.cuda.device_count()):
-            print(i, torch.cuda.get_device_name(i))
 
         batch_idx = 0
         total_correct = 0
@@ -104,11 +100,6 @@ class Validator:
             # Preprocess for classifier
             pred_preprocessed = self.image_processor(pil_images, return_tensors="pt")
 
-            pred_preprocessed = {
-                k: v.to(self.accelerator.device)
-                for k, v in pred_preprocessed.items()
-            }
-
             # classifier_input = torch.nn.functional.interpolate(
             #     pred_denorm,
             #     size=224,
@@ -134,6 +125,9 @@ class Validator:
             batch_idx += 1
             # if self.accelerator.is_main_process:
             logging.info(f"Processed batch {batch_idx} / {total_batches}, Current CA: {total_correct} / {total_samples} = {total_correct / total_samples:.4f}")
+            if not self.accelerator.is_main_process:
+                print(f"Processed batch {batch_idx} / {total_batches}, Current CA: {total_correct} / {total_samples} = {total_correct / total_samples:.4f}")
+
         
         # Barrier to ensure all processes are done
         self.accelerator.wait_for_everyone()
@@ -155,4 +149,4 @@ class Validator:
             logging.info(f"Validation completed. Classifier Accuracy: {ca_score}")
             return ca_score
         else:
-            return None, None
+            return None

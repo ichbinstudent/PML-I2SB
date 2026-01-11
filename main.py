@@ -24,7 +24,7 @@ from src.options import Options
 from src.model import get_model, load_adm_checkpoint
 from src.diffusion import DiffusionProcess
 from src.trainer import Trainer
-from src.utils import set_seed, setup_logging, get_beta_schedule, load_checkpoint
+from src.utils import set_seed, setup_logging, get_beta_schedule, load_checkpoint, load_checkpoint_superres
 from src.validator import Validator
 
 
@@ -84,7 +84,11 @@ def main():
         if opt.checkpoint_path is not None:
             if accelerator.is_main_process:
                 print("Loading checkpoint...")
-            load_checkpoint(model, optimizer, opt.checkpoint_path, device)
+            if opt.degradation == 'superres-bicubic':
+                print("here")
+                load_checkpoint_superres(model, optimizer, opt.checkpoint_path, device)
+            else:
+                load_checkpoint(model, optimizer, opt.checkpoint_path, device)
         if opt.adm_checkpoint_path is not None:
             if accelerator.is_main_process:
                 print("Loading pretrained UNet weights...")
@@ -119,6 +123,11 @@ def main():
     elif opt.mode == 'validate':
         if accelerator.is_main_process:
             print("Mode: Validation")
+
+        print("CUDA_VISIBLE_DEVICES=", os.environ.get("CUDA_VISIBLE_DEVICES"))
+        print("device_count=", torch.cuda.device_count())
+        for i in range(torch.cuda.device_count()):
+            print(i, torch.cuda.get_device_name(i))
         
         # Load validation dataset
         val_base_dataset = None
@@ -157,7 +166,11 @@ def main():
         if opt.checkpoint_path is not None:
             if accelerator.is_main_process:
                 print("Loading checkpoint...")
-            load_checkpoint(trained_model, None, opt.checkpoint_path, device)
+            if opt.degradation == 'superres-bicubic':
+                print("here")
+                load_checkpoint_superres(trained_model, None, opt.checkpoint_path, device)
+            else:
+                load_checkpoint(model, None, opt.checkpoint_path, device)
 
         beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 

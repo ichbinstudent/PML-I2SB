@@ -10,16 +10,16 @@ mode: 'train'  # options: 'train', 'validate'
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set/"
-adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
-val_data_dir: "./datasets/imagenet/val_set/"
-# checkpoint_path: "./logs_run_2/checkpoints/latest_checkpoint_copy.pth"
+# adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+# val_data_dir: "./datasets/imagenet/val_set/"
+checkpoint_path: "./logs_inpaint_freeform2030_train_full_07-01-2026/checkpoints/checkpoint_epoch_0003.pth"
 
 # Training params
 image_size: 64
-batch_size: 110
-num_workers: 1
+batch_size: 80
+num_workers: 0
 learning_rate: 1.0e-5
-epochs: 100
+epochs: 7
 mixed_precision: "fp16"
 
 # Diffusion params
@@ -27,6 +27,6 @@ noise_schedule: "linear"
 timesteps: 1000
 
 # Logging
-log_dir: "logs_inpaint_freeform2030_train2"
+log_dir: "logs_inpaint_freeform2030_train_full_07"
 log_interval: 10000
 

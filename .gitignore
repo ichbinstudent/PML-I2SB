@@ -228,4 +228,4 @@ imagenet/
 job_*.out
 job_*.err
 
-fid_stats/fid_imagenet_50K_75.npz
+fid_stats/*

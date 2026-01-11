@@ -6,6 +6,16 @@ import numpy as np
 import torch
 import torchvision.utils as vutils
 
+def _normalize_state_dict_keys(state_dict):
+    cleaned = {}
+    for key, value in state_dict.items():
+        new_key = key
+        if new_key.startswith("_orig_mod."):
+            new_key = new_key[len("_orig_mod."):]
+        if new_key.startswith("module."):
+            new_key = new_key[len("module."):]
+        cleaned[new_key] = value
+    return cleaned
 
 def setup_logging(log_dir):
     """
@@ -112,6 +122,46 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False, keep
         epoch_filepath = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.pth')
         torch.save(state, epoch_filepath)
         logging.info(f"Saved checkpoint to {epoch_filepath}")
+
+def load_checkpoint_superres(model, optimizer, filepath, device, ema_model=None):
+    """
+    Loads a model checkpoint.
+    
+    Args:
+        model (torch.nn.Module): The model to load state into.
+        optimizer (torch.optim.Optimizer): The optimizer to load state into.
+        filepath (str): Path to the checkpoint file.
+        device (torch.device): The device to map the loaded tensors to.
+
+    Returns:
+        int: The epoch to start training from (epoch + 1).
+    """
+    if not os.path.exists(filepath):
+        logging.warning(f"Checkpoint file not found: {filepath}. Starting from scratch.")
+        return 0 # Start from epoch 0
+
+    checkpoint = torch.load(filepath, map_location=device)
+
+    model_state = _normalize_state_dict_keys(checkpoint['model_state_dict'])
+    missing, unexpected = model.load_state_dict(model_state, strict=False)
+    if missing or unexpected:
+        logging.warning(f"Checkpoint load with non-strict match. Missing: {missing}, Unexpected: {unexpected}")
+    # Optimizer is None for validation mode
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    if ema_model is not None and 'ema_state_dict' in checkpoint:
+        ema_state = _normalize_state_dict_keys(checkpoint['ema_state_dict'])
+        ema_missing, ema_unexpected = ema_model.load_state_dict(ema_state, strict=False)
+        if ema_missing or ema_unexpected:
+            logging.warning(f"EMA load with non-strict match. Missing: {ema_missing}, Unexpected: {ema_unexpected}")
+        logging.info("Loaded EMA weights from checkpoint")
+
+    start_epoch = checkpoint['epoch'] + 1
+    
+    logging.info(f"Loaded checkpoint from {filepath}. Resuming from epoch {start_epoch}")
+    
+    return start_epoch
 
 def load_checkpoint(model, optimizer, filepath, device):
     """

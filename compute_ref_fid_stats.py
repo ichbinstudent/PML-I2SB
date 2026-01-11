@@ -6,14 +6,14 @@ import torch
 
 from src.options import Options
 from src.utils import setup_logging
-from src.fid.fid_utils import compute_fid_stats
+from src.fid_utils import compute_fid_stats
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, required=True, 
                         help='Path to the config file.')
     parser.add_argument('--superres', action='store_true',
-                        help='Compute FID stats for super-resolution dataset (10K images)')
+                        help='Compute FID stats for super-resolution dataset (50K images)')
     args = parser.parse_args()
     opt = Options.from_yaml(args.config)
     supperres_set = args.superres
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # Save statistics
     dir_path = os.path.dirname(opt.imagenet_stats_path)
     os.makedirs(dir_path, exist_ok=True)
-    size = "10K" if supperres_set else "50K"
+    size = "50K" if supperres_set else "10K"
     fn = os.path.join(dir_path, f"fid_imagenet_{size}_{opt.stats_image_size}.npz")
     np.savez(fn, mu=mu, sigma=sigma)
     logging.info(f"Saved FID reference statistics to {fn}!")

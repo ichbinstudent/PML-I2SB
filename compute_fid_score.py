@@ -1,13 +1,11 @@
 import numpy as np
-import os
-import logging
 import argparse
 import torch
 
 
 from cleanfid.fid import frechet_distance
 
-from src.fid.fid_utils import collect_features
+from src.fid_utils import collect_features
 from src.dataset import get_base_imagenet_dataset
 
 if __name__ == "__main__":
@@ -37,7 +35,7 @@ if __name__ == "__main__":
     stats = np.load(args.stats_path)
     ref_mu = stats['mu']
     ref_sigma = stats['sigma']
-    logging.info("Loaded reference statistics.")
+    print("Loaded reference statistics.")
 
     fid_score = frechet_distance(mu, sigma, ref_mu, ref_sigma)
-    logging.info(f"FID score: {fid_score}")
+    print(f"FID score: {fid_score}")

@@ -8,7 +8,7 @@ from cleanfid.features import build_feature_extractor
 from cleanfid.fid import get_batch_features
 
 from src.options import Options
-from src.dataset import get_base_imagenet_dataset, get_base_imagenet_val10K_dataset
+from src.dataset import get_base_imagenet_val_dataset
 from src.utils import unnormalize_to_zero_one
 
 
@@ -37,18 +37,16 @@ def collect_features(dataset, batch_size, device):
 
 def compute_fid_stats(supperres_set: bool, opt: Options, device: torch.device = "cpu"):
 
+    degradation = ""
     if supperres_set:
-        val_dataset = get_base_imagenet_dataset(
-            opt.val_data_dir,
-            opt.stats_image_size,
-            is_train=False
-        )
-    else:
-        val_dataset = get_base_imagenet_val10K_dataset(
-            opt.val_data_dir,
-            opt.stats_image_size,
-            opt.image_names_file,
-        )   
+        logging.info("Preparing super-resolution validation dataset (50K images)...")
+        degradation = "superres"
+    val_dataset = get_base_imagenet_val_dataset(
+        opt.val_data_dir,
+        opt.stats_image_size,
+        opt.image_names_file,
+        degradation,
+    )   
     logging.info("Loaded validation dataset.")
 
     # Compute FID statistics

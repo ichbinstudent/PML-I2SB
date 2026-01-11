@@ -14,16 +14,15 @@ adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 val_data_dir: "./datasets/imagenet/val_set/"
 checkpoint_path: "./checkpoints/jpeg_latest_checkpoint.pth"
 image_names_file: "./ctest10k.txt"
-imagenet_stats_path: "./imagenet/imagenet_stats.npz"
 
 # Validation params
 image_size: 64
-batch_size: 64
-num_workers: 4
+batch_size: 128
+num_workers: 2
 
 # Diffusion params
 noise_schedule: "linear"
-timesteps: 2
+timesteps: 1000
 
 # Logging
 log_dir: "logs_validation/jpeg"

@@ -1,6 +1,6 @@
 # Data paths
 val_data_dir: "./datasets/imagenet/val_set/"
-imagenet_stats_path: "./fid_stats/fid_imagenet_50K_75.npz"
+imagenet_stats_path: "./fid_stats"
 image_names_file: "./ctest10k.txt"
 
 # Validation params
