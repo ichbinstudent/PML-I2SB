@@ -2,30 +2,33 @@
 # Format: degradation_type-parameter
 # Examples: 'jpeg-10', 'blur-gauss', 'blur-uni', 'inpaint-center', 
 #           'inpaint-freeform1020', 'superres-bicubic'
-degradation: 'jpeg-10'
+degradation: 'inpaint-center'
 
 # Train or Validate
-mode: 'train'  # options: 'train', 'validate'
+mode: 'validate'  # options: 'train', 'validate'
 
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set_small/"
 adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 val_data_dir: "./datasets/imagenet/val_set/"
-# checkpoint_path: "./logs_run_2/checkpoints/latest_checkpoint_copy.pth"
+checkpoint_path: "./checkpoints/jpeg_latest_checkpoint_copy.pth"
+image_names_file: "./ctest10k.txt"
+imagenet_stats_path: "./imagenet/imagenet_stats.npz"
 
-# Training params
+# Validation params
 image_size: 64
-batch_size: 100
-num_workers: 2
-learning_rate: 1.0e-5
-epochs: 100
+batch_size: 625
+num_workers: 1
+
 
 # Diffusion params
 noise_schedule: "linear"
 timesteps: 1000
 
 # Logging
-log_dir: "logs_jpeg10_train"
-log_interval: 1000000
+log_dir: "logs_validation/inpaint_center"
+log_interval: 100000
+
+mixed_precision: "bf16"
 

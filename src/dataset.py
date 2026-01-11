@@ -1,11 +1,14 @@
 from torch.utils.data import Dataset
 import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
-from src.degradations import build_degradations
-from src.options import Options
+from torch.utils.data import Subset
 from PIL import Image
 import os
 from pathlib import Path
+
+from src.degradations import build_degradations
+from src.options import Options
+
 
 
 class SimpleImageDataset(Dataset):
@@ -83,6 +86,64 @@ def get_base_imagenet_dataset(data_dir, image_size, is_train=True):
 
     return base_dataset
 
+def get_base_imagenet_val_dataset(
+    data_dir,
+    image_size,
+    image_names_file,
+    degradation,
+):
+    """
+    Creates an ImageNet dataset but only keeps images listed in image_names_file.
+
+    Args:
+        data_dir (str): Path to ImageNet validation directory.
+        image_size (int): Target resize / crop size.
+        image_names_file (str): Path to .txt file containing image filenames of the 10K subset.
+        is_train (bool): Whether to apply training augmentations.
+
+    Returns:
+        Dataset: Filtered ImageNet dataset.
+    """
+
+    transformations = [
+        T.Resize(image_size),
+        T.CenterCrop(image_size),
+    ]
+
+    transformations += [
+        T.ToTensor(),
+        T.Lambda(lambda x: x * 2.0 - 1.0),  # [-1, 1]
+    ]
+
+    pre_transform = T.Compose(transformations)
+
+    print(f"Loading base dataset from: {data_dir}")
+
+    base_dataset = ImageFolder(root=data_dir, transform=pre_transform)
+    print(f"Using ImageFolder with {len(base_dataset.classes)} classes")
+
+    # return full dataset for super-resolution tasks
+    if "superres" in degradation:
+        return base_dataset
+    # filter dataset for other tasks
+    else:
+        # Load allowed image names
+        with open(image_names_file, "r") as f:
+            allowed_names = set(line.strip() for line in f if line.strip())
+
+        print(f"Filtering dataset using {len(allowed_names)} image names")
+
+        # Filter indices
+        selected_indices = [
+            idx
+            for idx, (path, _) in enumerate(base_dataset.samples)
+            if os.path.basename(path) in allowed_names
+        ]
+
+        print(f"Selected {len(selected_indices)} images")
+
+        return Subset(base_dataset, selected_indices)
+
 
 class I2SBImageNetWrapper(Dataset):
     """
@@ -110,9 +171,9 @@ class I2SBImageNetWrapper(Dataset):
         return len(self.base_dataset)
 
     def __getitem__(self, idx):
-        X_0, _ = self.base_dataset[idx]
+        X_0, label = self.base_dataset[idx]
 
-        X_0_batch = X_0.unsqueeze(0).to(self.opt.device)
+        X_0_batch = X_0.unsqueeze(0)
         degradation_output = self.degradation_fn(X_0_batch)
 
         if isinstance(degradation_output, tuple):
@@ -122,4 +183,4 @@ class I2SBImageNetWrapper(Dataset):
 
         X_1 = X_1_batch.squeeze(0)
 
-        return X_0, X_1
+        return X_0, X_1, label

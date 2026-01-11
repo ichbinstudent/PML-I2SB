@@ -6,6 +6,16 @@ import numpy as np
 import torch
 import torchvision.utils as vutils
 
+def _normalize_state_dict_keys(state_dict):
+    cleaned = {}
+    for key, value in state_dict.items():
+        new_key = key
+        if new_key.startswith("_orig_mod."):
+            new_key = new_key[len("_orig_mod."):]
+        if new_key.startswith("module."):
+            new_key = new_key[len("module."):]
+        cleaned[new_key] = value
+    return cleaned
 
 def setup_logging(log_dir):
     """
@@ -70,10 +80,13 @@ def set_seed(seed, deterministic=True):
         if deterministic:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+        else:
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.benchmark = True
             
-    logging.info(f"Set random seed to {seed}")
+    logging.info(f"Set random seed to {seed}. Deterministic: {deterministic}")
 
-def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
+def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False, keep_checkpoint=False):
     """
     Saves a model checkpoint.
     
@@ -83,6 +96,7 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
         epoch (int): The current epoch number.
         checkpoint_dir (str): Directory to save the checkpoint.
         is_best (bool): Whether this is the best performing model so far.
+        keep_checkpoint (bool): Whether to save a separate file for this epoch.
     """
     os.makedirs(checkpoint_dir, exist_ok=True)
     
@@ -102,6 +116,52 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False):
         best_filepath = os.path.join(checkpoint_dir, 'best_model.pth')
         torch.save(state, best_filepath)
         logging.info(f"Saved best model checkpoint to {best_filepath}")
+
+    # Save a separate file for this epoch if requested
+    if keep_checkpoint:
+        epoch_filepath = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.pth')
+        torch.save(state, epoch_filepath)
+        logging.info(f"Saved checkpoint to {epoch_filepath}")
+
+def load_checkpoint_superres(model, optimizer, filepath, device, ema_model=None):
+    """
+    Loads a model checkpoint.
+    
+    Args:
+        model (torch.nn.Module): The model to load state into.
+        optimizer (torch.optim.Optimizer): The optimizer to load state into.
+        filepath (str): Path to the checkpoint file.
+        device (torch.device): The device to map the loaded tensors to.
+
+    Returns:
+        int: The epoch to start training from (epoch + 1).
+    """
+    if not os.path.exists(filepath):
+        logging.warning(f"Checkpoint file not found: {filepath}. Starting from scratch.")
+        return 0 # Start from epoch 0
+
+    checkpoint = torch.load(filepath, map_location=device)
+
+    model_state = _normalize_state_dict_keys(checkpoint['model_state_dict'])
+    missing, unexpected = model.load_state_dict(model_state, strict=False)
+    if missing or unexpected:
+        logging.warning(f"Checkpoint load with non-strict match. Missing: {missing}, Unexpected: {unexpected}")
+    # Optimizer is None for validation mode
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    if ema_model is not None and 'ema_state_dict' in checkpoint:
+        ema_state = _normalize_state_dict_keys(checkpoint['ema_state_dict'])
+        ema_missing, ema_unexpected = ema_model.load_state_dict(ema_state, strict=False)
+        if ema_missing or ema_unexpected:
+            logging.warning(f"EMA load with non-strict match. Missing: {ema_missing}, Unexpected: {ema_unexpected}")
+        logging.info("Loaded EMA weights from checkpoint")
+
+    start_epoch = checkpoint['epoch'] + 1
+    
+    logging.info(f"Loaded checkpoint from {filepath}. Resuming from epoch {start_epoch}")
+    
+    return start_epoch
 
 def load_checkpoint(model, optimizer, filepath, device):
     """
@@ -123,7 +183,9 @@ def load_checkpoint(model, optimizer, filepath, device):
     checkpoint = torch.load(filepath, map_location=device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    # Optimizer is None for validation mode
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch'] + 1
     
     logging.info(f"Loaded checkpoint from {filepath}. Resuming from epoch {start_epoch}")
@@ -167,4 +229,25 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     vutils.save_image(grid, filepath, nrow=n_images, padding=2, pad_value=1.0)
     
     logging.debug(f"Saved image sample grid to {filepath}")
+
+def get_beta_schedule(schedule_name, num_diffusion_timesteps):
+    if schedule_name == "linear":
+        scale = 1000 / num_diffusion_timesteps
+        beta_start = scale * 0.0001
+        beta_end = scale * 0.02
+        return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
+    elif schedule_name == "const" or schedule_name == "symmetric":
+        return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
+    elif schedule_name == "cosine":
+            def alpha_bar(t):
+                return np.cos((t + 0.008) / 1.008 * np.pi / 2) ** 2
+            max_beta=0.999
+            betas = []
+            for i in range(num_diffusion_timesteps):
+                t1 = i / num_diffusion_timesteps
+                t2 = (i + 1) / num_diffusion_timesteps
+                betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+            return torch.tensor(betas, dtype=torch.float64)
+    else:
+        raise NotImplementedError(f"Unknown beta schedule: {schedule_name}")
 

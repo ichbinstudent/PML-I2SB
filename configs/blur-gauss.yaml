@@ -2,7 +2,7 @@
 # Format: degradation_type-parameter
 # Examples: 'jpeg-10', 'blur-gauss', 'blur-uni', 'inpaint-center', 
 #           'inpaint-freeform1020', 'superres-bicubic'
-degradation: 'jpeg-10'
+degradation: 'blur-gauss'
 
 # Train or Validate
 mode: 'train'  # options: 'train', 'validate'
@@ -26,6 +26,6 @@ noise_schedule: "linear"
 timesteps: 1000
 
 # Logging
-log_dir: "logs_jpeg10_train"
-log_interval: 1000000
+log_dir: "logs_blur_gauss_train"
+log_interval: 100000
 

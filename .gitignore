@@ -210,3 +210,22 @@ __marimo__/
 *.png
 *.jpg
 *.jpeg
+checkpoints/*.pt
+
+# Checkpoint files
+checkpoints/*
+
+# Dataset
+datasets/
+
+# Cluster misc
+logs/
+logs_*/
+pml.def
+pml.sif
+.DS_Store
+imagenet/
+job_*.out
+job_*.err
+
+fid_stats/*

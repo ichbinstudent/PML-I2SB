@@ -1,0 +1,23 @@
+# Data paths
+val_data_dir: "./datasets/imagenet/val_set/"
+imagenet_stats_path: "./fid_stats"
+image_names_file: "./ctest10k.txt"
+
+# Validation params
+image_size: 64
+batch_size: 16
+num_workers: 1
+
+# Referance FID computation params
+stats_image_size: 75
+
+# Diffusion params
+noise_schedule: "linear"
+timesteps: 1000
+
+# Logging
+log_dir: "logs_validation"
+log_interval: 100000
+
+mixed_precision: "bf16"
+

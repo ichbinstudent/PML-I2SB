@@ -2,17 +2,17 @@
 # Format: degradation_type-parameter
 # Examples: 'jpeg-10', 'blur-gauss', 'blur-uni', 'inpaint-center', 
 #           'inpaint-freeform1020', 'superres-bicubic'
-degradation: 'jpeg-10'
+degradation: 'superres-bicubic'
 
 # Train or Validate
 mode: 'train'  # options: 'train', 'validate'
 
 
 # Data paths
-train_data_dir: "./datasets/imagenet/train_set_small/"
-adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
-val_data_dir: "./datasets/imagenet/val_set/"
-# checkpoint_path: "./logs_run_2/checkpoints/latest_checkpoint_copy.pth"
+train_data_dir: "./datasets/imagenet/train_set/"
+# adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+# val_data_dir: "./datasets/imagenet/val_set/"
+checkpoint_path: "./logs_superres_bicubic_train/checkpoints/latest_checkpoint.pth"
 
 # Training params
 image_size: 64
@@ -26,6 +26,6 @@ noise_schedule: "linear"
 timesteps: 1000
 
 # Logging
-log_dir: "logs_jpeg10_train"
-log_interval: 1000000
+log_dir: "logs_superres_bicubic_train"
+log_interval: 10000
 
