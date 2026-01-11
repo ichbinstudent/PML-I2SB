@@ -84,8 +84,8 @@ def main():
         if opt.checkpoint_path is not None:
             if accelerator.is_main_process:
                 print("Loading checkpoint...")
+            # temporary fix for loading superres checkpoints
             if opt.degradation == 'superres-bicubic':
-                print("here")
                 load_checkpoint_superres(model, optimizer, opt.checkpoint_path, device)
             else:
                 load_checkpoint(model, optimizer, opt.checkpoint_path, device)
@@ -166,11 +166,11 @@ def main():
         if opt.checkpoint_path is not None:
             if accelerator.is_main_process:
                 print("Loading checkpoint...")
+            # temporary fix for loading superres checkpoints
             if opt.degradation == 'superres-bicubic':
-                print("here")
                 load_checkpoint_superres(trained_model, None, opt.checkpoint_path, device)
             else:
-                load_checkpoint(model, None, opt.checkpoint_path, device)
+                load_checkpoint(trained_model, None, opt.checkpoint_path, device)
 
         beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
 

@@ -20,22 +20,26 @@ if __name__ == "__main__":
                         help='Image size')
     args = parser.parse_args()
 
+    # get dataset of generated images
     generated_dataset = get_base_imagenet_dataset(
         data_dir=args.fake_dir,
         image_size=args.image_size,
         is_train=False
     )
 
+    # copute mean and covariance of generated images
     mu, sigma = collect_features(
         dataset=generated_dataset,
         batch_size=args.batch_size,
         device="cuda" if torch.cuda.is_available() else "cpu"
     )
 
+    # load reference statistics
     stats = np.load(args.stats_path)
     ref_mu = stats['mu']
     ref_sigma = stats['sigma']
     print("Loaded reference statistics.")
 
+    # compute frechet distance
     fid_score = frechet_distance(mu, sigma, ref_mu, ref_sigma)
     print(f"FID score: {fid_score}")

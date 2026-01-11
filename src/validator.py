@@ -100,18 +100,6 @@ class Validator:
             # Preprocess for classifier
             pred_preprocessed = self.image_processor(pil_images, return_tensors="pt")
 
-            # classifier_input = torch.nn.functional.interpolate(
-            #     pred_denorm,
-            #     size=224,
-            #     mode="bilinear",
-            #     align_corners=False,
-            # )
-
-            # # Normalize manually (ImageNet stats)
-            # mean = torch.tensor([0.485, 0.456, 0.406], device=self.device)[None, :, None, None]
-            # std  = torch.tensor([0.229, 0.224, 0.225], device=self.device)[None, :, None, None]
-            # classifier_input = (classifier_input - mean) / std
-
             # Get classifier outputs
             with self.accelerator.autocast():
                 logits = self.classifier(**pred_preprocessed).logits
