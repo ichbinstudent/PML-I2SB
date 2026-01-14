@@ -230,13 +230,15 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
-def get_beta_schedule(schedule_name, num_diffusion_timesteps):
+def get_beta_schedule(schedule_name, num_diffusion_timesteps, linear_start = 1e-4, linear_end = 2e-2) -> torch.Tensor:
     if schedule_name == "linear":
         scale = 1000 / num_diffusion_timesteps
-        beta_start = scale * 0.0001
-        beta_end = scale * 0.02
+        beta_start = scale * linear_start
+        beta_end = scale * linear_end
         return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
-    elif schedule_name == "const" or schedule_name == "symmetric":
+    elif schedule_name == "quadratic":
+        return torch.linspace(linear_start ** 0.5, linear_end ** 0.5, num_diffusion_timesteps, dtype=torch.float64) ** 2
+    elif schedule_name == "const":
         return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
     elif schedule_name == "cosine":
             def alpha_bar(t):

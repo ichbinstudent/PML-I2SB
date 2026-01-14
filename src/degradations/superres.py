@@ -24,7 +24,7 @@ def build_superres(opt: Options, sr_filter="bicubic", image_size=256):
     elif sr_filter == "pool":
 
         def downsample_fn(img):
-            return F.avg_pool2d(img, kernel_size=factor, stride=factor)
+            return F.avg_pool2d(img, kernel_size=factor, stride=factor), None
 
     elif sr_filter == "bilinear":
 
@@ -35,7 +35,7 @@ def build_superres(opt: Options, sr_filter="bicubic", image_size=256):
                 mode="bilinear",
                 antialias=True,
                 align_corners=True,
-            )
+            ), None
 
     else:
         raise ValueError("sr_filter must be 'bicubic', 'bilinear', or 'pool'")
@@ -44,6 +44,6 @@ def build_superres(opt: Options, sr_filter="bicubic", image_size=256):
         img_down = downsample_fn(img)
 
         img_up = F.interpolate(img_down, scale_factor=factor, mode="nearest")
-        return img_up
+        return img_up, None
 
     return superres_fn

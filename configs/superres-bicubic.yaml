@@ -10,22 +10,21 @@ mode: 'train'  # options: 'train', 'validate'
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set/"
-# adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 # val_data_dir: "./datasets/imagenet/val_set/"
-checkpoint_path: "./logs_superres_bicubic_train/checkpoints/latest_checkpoint.pth"
+# checkpoint_path: "./logs_superres_bicubic_train/checkpoints/latest_checkpoint.pth"
 
 # Training params
 image_size: 64
 batch_size: 100
-num_workers: 2
+num_workers: 0
 learning_rate: 1.0e-5
 epochs: 100
 
 # Diffusion params
-noise_schedule: "linear"
+noise_schedule: "symmetric"
 timesteps: 1000
 
 # Logging
-log_dir: "logs_superres_bicubic_train"
+log_dir: "./logs/logs_superres_bicubic_train"
 log_interval: 10000
-

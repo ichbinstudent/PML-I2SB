@@ -20,6 +20,6 @@ def build_blur(opt: Options, kernel_type: Union["uni", "gauss"]):
             img = gaussian_blur(img)
 
         img = img * 2 - 1  # scale back to [-1, 1]
-        return img
+        return img, None
 
     return blur

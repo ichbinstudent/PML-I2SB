@@ -192,5 +192,5 @@ def quantization_decode(x, qf):
 
 def build_jpeg(qf: int):
     def jpeg(img):
-        return jpeg_decode(jpeg_encode(img, qf), qf)
+        return jpeg_decode(jpeg_encode(img, qf), qf), None
     return jpeg

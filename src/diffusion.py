@@ -82,7 +82,7 @@ class DiffusionProcess:
             model_output = model_output[:, :3]
 
         std_fwd = self._extract(self.std_fwd, t, x0)
-        target = (xt - x0) / std_fwd
+        target = ((xt - x0) / std_fwd).detach()
         return (model_output - target).pow(2).mean()
 
     @torch.no_grad()

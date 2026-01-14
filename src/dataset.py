@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
@@ -174,13 +175,17 @@ class I2SBImageNetWrapper(Dataset):
         X_0, label = self.base_dataset[idx]
 
         X_0_batch = X_0.unsqueeze(0)
-        degradation_output = self.degradation_fn(X_0_batch)
+        degradation_output, mask = self.degradation_fn(X_0_batch)
 
-        if isinstance(degradation_output, tuple):
-            X_1_batch = degradation_output[0]
+        if mask is not None:
+            mask = mask.squeeze(0)
         else:
-            X_1_batch = degradation_output
+            # Return a dummy mask (all ones) for tasks without masks (e.g., super-resolution)
+            # This allows consistent tensor shapes for batching
+            mask = torch.ones(1, dtype=torch.float32)
+
+        X_1_batch = degradation_output
 
         X_1 = X_1_batch.squeeze(0)
 
-        return X_0, X_1, label
+        return X_0, X_1, label, mask

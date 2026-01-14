@@ -55,11 +55,8 @@ class Trainer:
             else:
                 pbar = self.data_loader
             
-            for X_0, X_1, _ in pbar:
+            for X_0, X_1, _, mask in pbar:
                 # X_0 and X_1 are already on device thanks to prepare()
-                # Optimize memory format for Tensor Cores
-                X_0 = X_0.contiguous(memory_format=torch.channels_last)
-                X_1 = X_1.contiguous(memory_format=torch.channels_last)
                 
                 with self.accelerator.accumulate(self.model):
                     batch_size = X_0.shape[0]
@@ -67,6 +64,14 @@ class Trainer:
                     
                     X_t = self.diffusion.sample_xt(X_0, X_1, t)
                     model_output = self.model(X_t, t)
+
+                    # Check if mask is a real spatial mask (for inpainting) or dummy scalar (for other tasks)
+                    # Real masks have more than 1 element per sample
+                    if mask.numel() > batch_size:
+                        mask = mask.unsqueeze(1)  # [B, 1, H, W] for broadcasting over channels
+                        model_output = model_output * mask
+                        X_0 = X_0 * mask
+
                     loss = self.diffusion.calculate_loss(model_output, X_0, X_t, t)
 
                     self.accelerator.backward(loss)

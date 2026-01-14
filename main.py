@@ -99,6 +99,7 @@ def main():
             param.data = param.data.contiguous()
 
         beta_schedule = get_beta_schedule(opt.noise_schedule, opt.timesteps)
+        beta_schedule = torch.concatenate([beta_schedule[:opt.timesteps//2], torch.flip(beta_schedule[:opt.timesteps//2], dims=[0])], dim=0)
 
         diffusion_process = DiffusionProcess(
             beta_schedule=beta_schedule,
