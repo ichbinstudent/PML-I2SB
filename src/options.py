@@ -1,5 +1,5 @@
 import yaml
-from typing import Optional
+from typing import Literal, Optional
 
 
 class Options:
@@ -30,7 +30,7 @@ class Options:
 
     # Diffusion params
     timesteps: int = 1000
-    noise_schedule: str = "linear"
+    noise_schedule: Literal["linear", "cosine", "quadratic", "const"] = "linear"
 
     # Optimization
     mixed_precision: str = "no" # "no", "fp16", "bf16"

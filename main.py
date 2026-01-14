@@ -9,7 +9,6 @@ os.environ["NCCL_SHM_DISABLE"] = "1"
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
 import argparse
-import yaml
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import AdamW

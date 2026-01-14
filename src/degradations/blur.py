@@ -1,10 +1,10 @@
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
-from typing import Union
+from typing import Literal
 from src.options import Options
 
-def build_blur(opt: Options, kernel_type: Union["uni", "gauss"]):
+def build_blur(opt: Options, kernel_type: Literal["uni", "gauss"]):
     assert kernel_type in ["uni", "gauss"]
 
     gaussian_blur = T.GaussianBlur(kernel_size=(5, 5), sigma=(10.0, 10.0))

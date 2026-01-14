@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
@@ -18,7 +19,7 @@ class SimpleImageDataset(Dataset):
     Supports common image formats: .jpg, .jpeg, .png, .JPEG, .JPG, .PNG
     """
 
-    def __init__(self, root, transform=None):
+    def __init__(self, root: str, transform: Optional[T.Compose] = None):
         self.root = root
         self.transform = transform
 
@@ -47,7 +48,7 @@ class SimpleImageDataset(Dataset):
         return image, 0  # Return 0 as dummy label for compatibility
 
 
-def get_base_imagenet_dataset(data_dir, image_size, is_train=True):
+def get_base_imagenet_dataset(data_dir: str, image_size: int, is_train: bool = True) -> Dataset:
     """
     Creates the base ImageNet dataset from a folder path.
     Tries ImageFolder first (for standard ImageNet structure),
@@ -88,10 +89,10 @@ def get_base_imagenet_dataset(data_dir, image_size, is_train=True):
     return base_dataset
 
 def get_base_imagenet_val_dataset(
-    data_dir,
-    image_size,
-    image_names_file,
-    degradation,
+    data_dir: str,
+    image_size: int,
+    image_names_file: str,
+    degradation: str,
 ):
     """
     Creates an ImageNet dataset but only keeps images listed in image_names_file.
@@ -155,23 +156,23 @@ class I2SBImageNetWrapper(Dataset):
     X_1 is the degraded image.
     """
 
-    def __init__(self, base_dataset, opt: Options):
+    def __init__(self, base_dataset: Dataset, opt: Options):
         """
         Args:
             base_dataset: The pre-initialized ImageFolder dataset.
             opt: Options object containing degradation configuration.
         """
-        self.base_dataset = base_dataset
-        self.opt = opt
+        self.base_dataset: Dataset = base_dataset
+        self.opt: Options = opt
 
         # Build the degradation function based on opt.degradation
         self.degradation_fn = build_degradations(opt, opt.degradation)
         print(f"Built degradation: {opt.degradation}")
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.base_dataset)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         X_0, label = self.base_dataset[idx]
 
         X_0_batch = X_0.unsqueeze(0)

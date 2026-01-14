@@ -3,7 +3,7 @@ import torch
 
 class DiffusionProcess:
 
-    def __init__(self, beta_schedule):
+    def __init__(self, beta_schedule: torch.Tensor):
         self.beta = beta_schedule
         self.n_steps = len(beta_schedule)
         self.t = torch.linspace(0, 1, self.n_steps)
@@ -22,7 +22,7 @@ class DiffusionProcess:
 
         self.std_sb = torch.sqrt((self.std_fwd**2 * self.std_bwd**2) / denom)
 
-    def sample_timesteps(self, batch_size):
+    def sample_timesteps(self, batch_size: int) -> torch.Tensor:
         return torch.randint(0, self.n_steps, (batch_size,))
 
     @staticmethod
@@ -34,7 +34,7 @@ class DiffusionProcess:
         out = torch.as_tensor(arr, dtype=dtype, device=device).gather(0, t)
         return out.reshape((-1,) + (1,) * (ndim - 1))
 
-    def sample_xt(self, x0, x1, t):
+    def sample_xt(self, x0: torch.Tensor, x1: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         From equation (11) in the paper
 
@@ -50,7 +50,7 @@ class DiffusionProcess:
         xt = xt + std_sb * torch.randn_like(xt)
         return xt.detach()
 
-    def posterior(self, x0_pred, x_n, n, nprev):
+    def posterior(self, x0_pred: torch.Tensor, x_n: torch.Tensor, n: torch.Tensor, nprev: torch.Tensor) -> torch.Tensor:
         """
         From equation (4) in the paper
 
@@ -72,7 +72,7 @@ class DiffusionProcess:
         
         return xt_prev
 
-    def calculate_loss(self, model_output, x0, xt, t):
+    def calculate_loss(self, model_output: torch.Tensor, x0: torch.Tensor, xt: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         From equation (12) in the paper
 
@@ -86,7 +86,7 @@ class DiffusionProcess:
         return (model_output - target).pow(2).mean()
 
     @torch.no_grad()
-    def sample_ddpm(self, model, x1, n_steps, precision: float = 1) -> torch.Tensor:
+    def sample_ddpm(self, model: torch.nn.Module, x1: torch.Tensor, n_steps: int, precision: float = 1) -> torch.Tensor:
         """
         Sample using I2SB reverse process (Algorithm 2 from the paper).
         """

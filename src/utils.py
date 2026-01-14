@@ -2,11 +2,12 @@ import os
 import sys
 import logging
 import random
+from typing import Literal, Optional
 import numpy as np
 import torch
 import torchvision.utils as vutils
 
-def _normalize_state_dict_keys(state_dict):
+def _normalize_state_dict_keys(state_dict: dict) -> dict:
     cleaned = {}
     for key, value in state_dict.items():
         new_key = key
@@ -17,7 +18,7 @@ def _normalize_state_dict_keys(state_dict):
         cleaned[new_key] = value
     return cleaned
 
-def setup_logging(log_dir):
+def setup_logging(log_dir: str) -> None:
     """
     Configures the logging module to output to both console and a file.
     
@@ -61,7 +62,7 @@ def setup_logging(log_dir):
     
     logging.info("Logging setup complete. Logs will be saved to %s", log_filename)
 
-def set_seed(seed, deterministic=True):
+def set_seed(seed: int, deterministic: bool = True) -> None:
     """
     Set random seeds for reproducibility.
     
@@ -86,7 +87,7 @@ def set_seed(seed, deterministic=True):
             
     logging.info(f"Set random seed to {seed}. Deterministic: {deterministic}")
 
-def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False, keep_checkpoint=False):
+def save_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer, epoch: int, checkpoint_dir: str, is_best: bool = False, keep_checkpoint: bool = False) -> None:
     """
     Saves a model checkpoint.
     
@@ -123,7 +124,7 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_dir, is_best=False, keep
         torch.save(state, epoch_filepath)
         logging.info(f"Saved checkpoint to {epoch_filepath}")
 
-def load_checkpoint_superres(model, optimizer, filepath, device, ema_model=None):
+def load_checkpoint_superres(model: torch.nn.Module, optimizer: torch.optim.Optimizer, filepath: str, device: torch.device, ema_model: Optional[torch.nn.Module] = None) -> int:
     """
     Loads a model checkpoint.
     
@@ -163,7 +164,7 @@ def load_checkpoint_superres(model, optimizer, filepath, device, ema_model=None)
     
     return start_epoch
 
-def load_checkpoint(model, optimizer, filepath, device):
+def load_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer, filepath: str, device: torch.device) -> int:
     """
     Loads a model checkpoint.
     
@@ -192,13 +193,13 @@ def load_checkpoint(model, optimizer, filepath, device):
     
     return start_epoch
 
-def unnormalize_to_zero_one(tensor):
+def unnormalize_to_zero_one(tensor: torch.Tensor) -> torch.Tensor:
     """
     Un-normalizes a tensor from [-1, 1] to [0, 1].
     """
     return (tensor + 1.0) * 0.5
 
-def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
+def save_image_grid(X_1: torch.Tensor, X_pred: torch.Tensor, X_0: torch.Tensor, filepath: str, n_images: int = 8):
     """
     Saves a grid of images: [Degraded, Predicted, Clean].
     
@@ -230,7 +231,7 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
-def get_beta_schedule(schedule_name, num_diffusion_timesteps, linear_start = 1e-4, linear_end = 2e-2) -> torch.Tensor:
+def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "cosine"], num_diffusion_timesteps: int, linear_start: float = 1e-4, linear_end: float = 2e-2) -> torch.Tensor:
     if schedule_name == "linear":
         scale = 1000 / num_diffusion_timesteps
         beta_start = scale * linear_start

@@ -29,17 +29,11 @@ def get_model(config: Options) -> torch.nn.Module:
     OpenAI factory.
     
     Args:
-        config (dict): A dictionary, typically loaded from a YAML file.
-                       
+        config (Options): An Options object containing configuration parameters.
+
     Returns:
         torch.nn.Module: The U-Net model.
     """
-    image_size = config.image_size
-    #if image_size != 256:
-    #    logging.warning(
-    #        f"Model config is optimized for 256x256, but image_size is {image_size}."
-    #    )
-
     adm_config = model_and_diffusion_defaults()
 
     adm_config.update({
