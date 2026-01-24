@@ -32,7 +32,7 @@ def setup_logging(log_dir: str) -> None:
 
     # Get the root logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     # Remove any existing handlers to avoid duplicate logs
     if logger.hasHandlers():
@@ -40,7 +40,7 @@ def setup_logging(log_dir: str) -> None:
 
     # Create file handler
     file_handler = logging.FileHandler(log_filename)
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.DEBUG)
 
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -231,16 +231,17 @@ def save_image_grid(X_1: torch.Tensor, X_pred: torch.Tensor, X_0: torch.Tensor, 
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
-def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "cosine"], num_diffusion_timesteps: int, linear_start: float = 1e-4, linear_end: float = 2e-2) -> torch.Tensor:
+def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "cosine"], num_diffusion_timesteps: int, linear_start: float = 1e-4, linear_end: float = 2e-2, symmetrize: bool = True) -> torch.Tensor:
+    logging.debug(f"Generating beta {schedule_name} schedule with {num_diffusion_timesteps} steps.")
     if schedule_name == "linear":
         scale = 1000 / num_diffusion_timesteps
         beta_start = scale * linear_start
         beta_end = scale * linear_end
-        return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
+        schedule = torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
     elif schedule_name == "quadratic":
-        return torch.linspace(linear_start ** 0.5, linear_end ** 0.5, num_diffusion_timesteps, dtype=torch.float64) ** 2
+        schedule = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, num_diffusion_timesteps, dtype=torch.float64) ** 2
     elif schedule_name == "const":
-        return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
+        schedule = torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
     elif schedule_name == "cosine":
             def alpha_bar(t):
                 return np.cos((t + 0.008) / 1.008 * np.pi / 2) ** 2
@@ -250,7 +251,11 @@ def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "co
                 t1 = i / num_diffusion_timesteps
                 t2 = (i + 1) / num_diffusion_timesteps
                 betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
-            return torch.tensor(betas, dtype=torch.float64)
+            schedule = torch.tensor(betas, dtype=torch.float64)
     else:
         raise NotImplementedError(f"Unknown beta schedule: {schedule_name}")
+    if symmetrize:
+        schedule = torch.concatenate([schedule[:num_diffusion_timesteps//2], torch.flip(schedule[:num_diffusion_timesteps//2], dims=[0])], dim=0)
+    logging.debug(schedule)
+    return schedule
 

@@ -3,7 +3,10 @@ import torch.nn.functional as F
 from src.options import Options
 
 
-def build_superres(opt: Options, sr_filter: Literal["bicubic", "bilinear", "pool"] = "bicubic", image_size: int = 256):
+def build_superres(
+    opt: Options,
+    sr_filter: Literal["bicubic", "bilinear", "pool"] = "bicubic"
+):
     """
     Creates a function that performs 4x downsampling and then
     4x nearest-neighbor upsampling.

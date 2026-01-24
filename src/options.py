@@ -5,7 +5,7 @@ from typing import Literal, Optional
 class Options:
     # Default values
     image_size: int = 256
-    stats_image_size: Optional [int] = None
+    stats_image_size: int = 256
     device: str = "cuda"
     degradation: str = "jpeg-10"
 
@@ -22,30 +22,24 @@ class Options:
     val_data_dir: Optional[str] = None
     adm_checkpoint_path: Optional[str] = None # "./checkpoints/256x256_diffusion_uncond.pt"
     checkpoint_path: Optional[str] = None # "./logs/checkpoints/latest_checkpoint.pt
-    imagenet_stats_path: Optional[str] = None # Path to ImageNet statistics for FID calculation
-    image_names_file: Optional[str] = None  # Path to text file with allowed image names for validation
-
-    dataset_fraction: float = 0.01
-
+    imagenet_stats_path: str = "./imagenet/imagenet_stats.npz" # Path to ImageNet statistics for FID calculation
 
     # Diffusion params
-    timesteps: int = 1000
-    noise_schedule: Literal["linear", "cosine", "quadratic", "const"] = "linear"
+    timesteps: int = 4000
+    noise_schedule: Literal['linear', 'quadratic', 'const', 'cosine'] = 'linear'
+    timesteps_schedule: Literal['linear', 'quadratic'] = 'quadratic'
 
     # Optimization
-    mixed_precision: str = "no" # "no", "fp16", "bf16"
+    mixed_precision: Literal['no', 'fp16', 'bf16'] = "no" # "no", "fp16", "bf16"
     gradient_accumulation_steps: int = 1
     use_checkpoint: bool = False # Gradient checkpointing
     use_compile: bool = False # torch.compile
-    dist_backend: str = "gloo" # "nccl" or "gloo"
-
-    # EMA
-    use_ema: bool = True
-    ema_decay: float = 0.999
+    dist_backend: str = "nccl" # "nccl" or "gloo"
 
     # Logging
     log_dir: str = "logs"
     log_interval: int = 100
+    checkpoint_save_interval: int = 1000
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "Options":

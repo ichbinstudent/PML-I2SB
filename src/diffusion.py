@@ -1,3 +1,4 @@
+from typing import Literal
 import torch
 
 
@@ -22,8 +23,17 @@ class DiffusionProcess:
 
         self.std_sb = torch.sqrt((self.std_fwd**2 * self.std_bwd**2) / denom)
 
-    def sample_timesteps(self, batch_size: int) -> torch.Tensor:
-        return torch.randint(0, self.n_steps, (batch_size,))
+    def sample_timesteps(self, batch_size: int, schedule: Literal['linear', 'quadratic'] = 'linear') -> torch.Tensor:
+        u = torch.rand(batch_size)
+        if schedule == 'linear':
+            timesteps = torch.floor(self.n_steps * u).long()
+        elif schedule == 'quadratic':
+            timesteps = torch.floor(self.n_steps * u ** 2).long()
+        else:
+            raise ValueError(f"Unknown schedule: {schedule}")
+
+        timesteps = torch.clamp(timesteps, 0, self.n_steps - 1)
+        return timesteps
 
     @staticmethod
     def _extract(arr, t, x, dtype=torch.float, device=torch.device("cpu"), ndim=4):
@@ -72,7 +82,14 @@ class DiffusionProcess:
         
         return xt_prev
 
-    def calculate_loss(self, model_output: torch.Tensor, x0: torch.Tensor, xt: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def calculate_loss(
+        self,
+        model_output: torch.Tensor,
+        x0: torch.Tensor,
+        xt: torch.Tensor,
+        t: torch.Tensor,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         """
         From equation (12) in the paper
 
@@ -83,7 +100,22 @@ class DiffusionProcess:
 
         std_fwd = self._extract(self.std_fwd, t, x0)
         target = ((xt - x0) / std_fwd).detach()
-        return (model_output - target).pow(2).mean()
+
+        diff_sq = (model_output - target).pow(2)
+
+        if mask is None:
+            return diff_sq.mean()
+
+        # Expect mask to be spatial: [B, 1, H, W] or [B, H, W]
+        if mask.ndim == 3:
+            mask = mask.unsqueeze(1)
+        if mask.ndim != diff_sq.ndim:
+            raise ValueError(f"Mask ndim {mask.ndim} must match loss ndim {diff_sq.ndim} (after optional unsqueeze).")
+
+        mask = mask.to(dtype=diff_sq.dtype, device=diff_sq.device)
+        masked = diff_sq * mask
+        denom = mask.sum() * diff_sq.shape[1]
+        return masked.sum() / (denom.clamp_min(1.0))
 
     @torch.no_grad()
     def sample_ddpm(self, model: torch.nn.Module, x1: torch.Tensor, n_steps: int, precision: float = 1) -> torch.Tensor:

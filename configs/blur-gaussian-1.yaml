@@ -1,0 +1,39 @@
+# Degradation type
+# Format: degradation_type-parameter
+# Examples: 'jpeg-10', 'blur-gauss', 'blur-uni', 'inpaint-center', 
+#           'inpaint-freeform1020', 'superres-bicubic'
+degradation: 'blur-gauss'
+
+# Train or Validate
+mode: 'train'  # options: 'train', 'validate'
+
+
+# Data paths
+train_data_dir: "./datasets/imagenet/train_set_small/"
+adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+# val_data_dir: "./datasets/imagenet/val_set/"
+# checkpoint_path: "./logs/blur_gauss_1/checkpoints/latest_checkpoint.pth"
+
+# Training params
+image_size: 64
+batch_size: 100
+num_workers: 0
+learning_rate: 1.0e-4
+epochs: 50
+
+# Diffusion params
+noise_schedule: "linear"
+timesteps: 4000
+timesteps_schedule: "quadratic"
+
+# Logging
+log_dir: "./logs/blur_gauss_2"
+log_interval: 1000
+
+# Checkpoint saving
+checkpoint_save_interval: 100
+
+# Optimization
+mixed_precision: "bf16"
+gradient_accumulation_steps: 1
+use_compile: true

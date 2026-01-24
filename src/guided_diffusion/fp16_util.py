@@ -1,5 +1,5 @@
 # Copied from:
-# https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/fp16_util.py
+# https://github.com/openai/guided-diffusion/blob/main/improved_diffusion/fp16_util.py
 
 """
 Helpers to train with 16-bit precision.
