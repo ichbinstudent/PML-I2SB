@@ -11,7 +11,7 @@ set -e  # Exit on error
 
 # --- ARGUMENT PARSING ---
 # $1 is the first argument passed to sbatch
-# Usage: sbatch script.sh path/to/config.yaml
+# Usage: sbatch ./scripts/train_multinode.sbatch path/to/config.yaml
 
 if [[ -z "$1" ]]; then
     echo "Error: No config file provided."

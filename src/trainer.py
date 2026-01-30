@@ -4,8 +4,10 @@ Implements the main training loop for I2SB.
 
 import logging
 import os
+import math
 import torch
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR, LinearLR, SequentialLR
 from tqdm import tqdm
 from typing import Any
 
@@ -17,16 +19,12 @@ class Trainer:
     def __init__(self, model: torch.nn.Module, diffusion: DiffusionProcess, data_loader: torch.utils.data.DataLoader, config: Options, device: torch.device, optimizer, accelerator):
         self.model = model
         self.diffusion = diffusion
-        self.data_loader = data_loader
         self.config = config
         self.device = device
         self.accelerator = accelerator
-
-        self.lr = config.learning_rate
-
         self.optimizer = optimizer
+        
 
-        self.global_step = 0
         self.log_dir = config.log_dir
         self.sample_dir = os.path.join(self.log_dir, 'samples')
         self.checkpoint_dir = os.path.join(self.log_dir, 'checkpoints')
@@ -34,13 +32,33 @@ class Trainer:
         if self.accelerator.is_main_process:
             os.makedirs(self.sample_dir, exist_ok=True)
             os.makedirs(self.checkpoint_dir, exist_ok=True)
-        
-        # Prepare everything with accelerator
+
         self.model, self.optimizer, self.data_loader = self.accelerator.prepare(
-            self.model, self.optimizer, self.data_loader
+            self.model, self.optimizer, data_loader
+        )
+
+        steps_per_epoch = len(self.data_loader)
+        self.total_steps = steps_per_epoch * config.epochs
+        
+        warmup_steps = 500 
+        
+        scheduler_warmup = LinearLR(
+            self.optimizer, start_factor=0.01, end_factor=1.0, total_iters=warmup_steps
+        )
+        scheduler_cosine = CosineAnnealingLR(
+            self.optimizer, T_max=(self.total_steps - warmup_steps), eta_min=1e-6
         )
         
-        logging.info("Trainer initialized.")
+        self.scheduler = SequentialLR(
+            self.optimizer, 
+            schedulers=[scheduler_warmup, scheduler_cosine], 
+            milestones=[warmup_steps]
+        )
+
+        self.scheduler = self.accelerator.prepare(self.scheduler)
+        
+        self.global_step = 0
+        logging.info(f"Trainer initialized. Total steps: {self.total_steps}")
 
     def train(self, epochs):
         if self.accelerator.is_main_process:
@@ -51,14 +69,12 @@ class Trainer:
             
             if self.accelerator.is_main_process:
                 pbar: Any = tqdm(self.data_loader, 
-                            desc=f"Epoch {epoch + 1}/{epochs}", 
-                            leave=True)
+                                desc=f"Epoch {epoch + 1}/{epochs}", 
+                                leave=True)
             else:
                 pbar: Any = self.data_loader
             
             for X_0, X_1, _, mask in pbar:
-                # X_0 and X_1 are already on device thanks to prepare()
-                
                 with self.accelerator.accumulate(self.model):
                     batch_size = X_0.shape[0]
                     t = self.diffusion.sample_timesteps(batch_size, self.config.timesteps_schedule).to(self.device)
@@ -66,19 +82,16 @@ class Trainer:
                     X_t = self.diffusion.sample_xt(X_0, X_1, t)
                     model_output = self.model(X_t, t)
 
-                    # Check if mask is a real spatial mask (for inpainting) or dummy scalar (for other tasks)
-                    # Real masks have more than 1 element per sample
                     loss_mask = None
                     if mask.numel() > batch_size:
-                        loss_mask = mask.unsqueeze(1)  # [B, 1, H, W]
+                        loss_mask = mask.unsqueeze(1)
 
                     loss = self.diffusion.calculate_loss(model_output, X_0, X_t, t, mask=loss_mask)
 
                     self.accelerator.backward(loss)
 
-                    # Only step optimizer/scheduler when gradients are synchronized
-                    # (i.e., on the last micro-step for gradient accumulation)
                     if self.accelerator.sync_gradients:
+                        self.accelerator.clip_grad_norm_(self.model.parameters(), 1.0)
                         self.optimizer.step()
                         self.optimizer.zero_grad()
                         self.global_step += 1
