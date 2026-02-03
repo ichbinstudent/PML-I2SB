@@ -133,10 +133,16 @@ class DiffusionProcess:
         steps = steps[::-1]
         
         xt = x1.detach()
+        model_device = None
+        for param in model.parameters():
+            model_device = param.device
+            break
+        if model_device is not None and xt.device != model_device:
+            xt = xt.to(model_device)
         
         for prev_step, step in zip(steps[1:], steps[:-1]):
-            t = torch.full((x1.shape[0],), step, device=x1.device, dtype=torch.long)
-            t_prev = torch.full((x1.shape[0],), prev_step, device=x1.device, dtype=torch.long)
+            t = torch.full((xt.shape[0],), step, device=xt.device, dtype=torch.long)
+            t_prev = torch.full((xt.shape[0],), prev_step, device=xt.device, dtype=torch.long)
             
             std_fwd = self._extract(self.std_fwd, t, xt)
 

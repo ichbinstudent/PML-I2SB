@@ -183,8 +183,8 @@ def main():
             model=trained_model,
             diffusion=diffusion_process,
             data_loader=val_loader,
-            config=opt,
-            device=device
+            opt=opt,
+            accelerator=accelerator
         )
 
         print("Starting validation...")

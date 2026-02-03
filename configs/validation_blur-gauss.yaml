@@ -10,9 +10,9 @@ mode: 'validate'  # options: 'train', 'validate'
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set_small/"
-adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+# adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 val_data_dir: "./datasets/imagenet/val_set/"
-checkpoint_path: "./checkpoints/blur_gauss_latest_checkpoint.pth"
+checkpoint_path: "./logs/blur_gauss_2.1/checkpoints/latest_checkpoint.pth"
 image_names_file: "./ctest10k.txt"
 
 # Validation params
@@ -22,7 +22,7 @@ num_workers: 2
 
 # Diffusion params
 noise_schedule: "linear"
-timesteps: 1000
+timesteps: 4000
 
 # Logging
 log_dir: "logs_validation/blur"

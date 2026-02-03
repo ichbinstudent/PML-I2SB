@@ -76,7 +76,7 @@ class Validator:
         else:
             pbar = self.data_loader
 
-        for _, X_1, labels in pbar:
+        for _, X_1, labels, _ in pbar:
 
             with self.accelerator.autocast():
                 pred = self.diffusion.sample_ddpm(self.model, X_1, self.diffusion.n_steps)
@@ -99,6 +99,7 @@ class Validator:
 
             # Preprocess for classifier
             pred_preprocessed = self.image_processor(pil_images, return_tensors="pt")
+            pred_preprocessed = {k: v.to(self.device) for k, v in pred_preprocessed.items()}
 
             # classifier_input = torch.nn.functional.interpolate(
             #     pred_denorm,
@@ -116,7 +117,7 @@ class Validator:
             with self.accelerator.autocast():
                 logits = self.classifier(**pred_preprocessed).logits
         
-            preds = torch.argmax(logits, dim=-1)
+            preds = torch.argmax(logits, dim=-1).to(labels.device)
 
             correct = (preds == labels).sum().item()
             total_correct += correct
