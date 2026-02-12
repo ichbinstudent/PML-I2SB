@@ -1,11 +1,12 @@
 import logging
 import os
 import torch
+import torch.nn.functional as F
+import concurrent.futures
 
 from torchvision.utils import save_image
 from tqdm import tqdm
-from transformers import AutoImageProcessor, ResNetForImageClassification
-from torchvision.transforms import ToPILImage
+from transformers import ResNetForImageClassification
 from accelerate import Accelerator
 
 from src.diffusion import DiffusionProcess
@@ -37,15 +38,19 @@ class Validator:
         self.imagenet_stats_path = opt.imagenet_stats_path
 
         # Prepare model, diffusion, and data_loader with accelerator
-        self.model, self.diffusion = self.accelerator.prepare(self.model, self.diffusion)
-        #self.data_loader = self.accelerator.prepare(self.data_loader)
+        self.model, self.data_loader = self.accelerator.prepare(self.model, self.data_loader)
 
         # Load pretrained classifier for classifier accuracy calculation
         self.classifier = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
         self.classifier.eval()
         self.classifier = self.accelerator.prepare(self.classifier)
-        # Image processor for the classifier
-        self.image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
+
+        # Standard ImageNet normalization for ResNet
+        self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(self.device)
+        self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(self.device)
+        
+        # Thread pool for saving images
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
 
         if self.accelerator.is_main_process:
             # clear existing fake images directory
@@ -76,46 +81,37 @@ class Validator:
         else:
             pbar = self.data_loader
 
+        # Use unwrapped model for sampling, without autocast, to match Trainer behavior
+        # unwrapped_model = self.accelerator.unwrap_model(self.model)
+
         for _, X_1, labels, _ in pbar:
 
-            with self.accelerator.autocast():
-                pred = self.diffusion.sample_ddpm(self.model, X_1, self.diffusion.n_steps)
+            pred = self.diffusion.sample_ddpm(self.model, X_1, self.diffusion.n_steps)
 
             # Denormalize restored images to [0, 1] for saving and PIL conversion
             pred_denorm = unnormalize_to_zero_one(pred)
 
+            # Parallel Save
+            def save_single_image(img_tensor, path):
+                save_image(img_tensor, path)
+            
             # Save images for FID calculation
             for i in range(X_1.shape[0]):
                 fake_path = os.path.join(
                     self.fake_dir, 
                     f"fake_{self.accelerator.process_index}_{batch_idx}_{i}.png"
                 )
-                save_image(pred_denorm[i], fake_path)
+                self.executor.submit(save_single_image, pred_denorm[i].cpu(), fake_path)
 
-            # Classifier on predicted images
-            # Convert to PIL images
-            to_pil = ToPILImage()
-            pil_images = [to_pil(img.cpu()) for img in pred_denorm]
-
-            # Preprocess for classifier
-            pred_preprocessed = self.image_processor(pil_images, return_tensors="pt")
-            pred_preprocessed = {k: v.to(self.device) for k, v in pred_preprocessed.items()}
-
-            # classifier_input = torch.nn.functional.interpolate(
-            #     pred_denorm,
-            #     size=224,
-            #     mode="bilinear",
-            #     align_corners=False,
-            # )
-
-            # # Normalize manually (ImageNet stats)
-            # mean = torch.tensor([0.485, 0.456, 0.406], device=self.device)[None, :, None, None]
-            # std  = torch.tensor([0.229, 0.224, 0.225], device=self.device)[None, :, None, None]
-            # classifier_input = (classifier_input - mean) / std
+            # Preprocess for classifier on GPU
+            # Resize
+            pred_resized = F.interpolate(pred_denorm, size=(224, 224), mode='bilinear', align_corners=False)
+            # Normalize
+            classifier_input = (pred_resized - self.mean) / self.std
 
             # Get classifier outputs
             with self.accelerator.autocast():
-                logits = self.classifier(**pred_preprocessed).logits
+                logits = self.classifier(pixel_values=classifier_input).logits
         
             preds = torch.argmax(logits, dim=-1).to(labels.device)
 
