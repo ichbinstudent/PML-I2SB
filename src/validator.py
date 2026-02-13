@@ -86,7 +86,7 @@ class Validator:
 
         for _, X_1, labels, _ in pbar:
 
-            pred = self.diffusion.sample_ddpm(self.model, X_1, self.diffusion.n_steps)
+            pred = self.diffusion.sample_ddpm(self.model, X_1, self.diffusion.n_steps, n_inference_steps=self.config.validation_timesteps)
 
             # Denormalize restored images to [0, 1] for saving and PIL conversion
             pred_denorm = unnormalize_to_zero_one(pred)
@@ -96,9 +96,9 @@ class Validator:
                 save_image(img_tensor, path)
             
             # Save images for FID calculation
-            for i in range(X_1.shape[0]):
+            for i in range(min(5, X_1.shape[0])):
                 fake_path = os.path.join(
-                    self.fake_dir, 
+                    self.fake_dir,
                     f"fake_{self.accelerator.process_index}_{batch_idx}_{i}.png"
                 )
                 self.executor.submit(save_single_image, pred_denorm[i].cpu(), fake_path)

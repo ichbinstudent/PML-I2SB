@@ -1,11 +1,12 @@
-from typing import Literal
+from typing import Literal, Optional
 import torch
 
 
 class DiffusionProcess:
 
-    def __init__(self, beta_schedule: torch.Tensor):
+    def __init__(self, beta_schedule: torch.Tensor, noise_scale: float = 1.0):
         self.beta = beta_schedule
+        self.noise_scale = noise_scale
         self.n_steps = len(beta_schedule)
         self.t = torch.linspace(0, 1, self.n_steps)
 
@@ -41,8 +42,11 @@ class DiffusionProcess:
             dtype = x.dtype
             device = x.device
             ndim = x.ndim
-        out = torch.as_tensor(arr, dtype=dtype, device=device).gather(0, t)
-        return out.reshape((-1,) + (1,) * (ndim - 1))
+        
+        arr_device = arr.device
+        out = arr.gather(0, t.to(arr_device))
+        
+        return out.to(device=device, dtype=dtype).reshape((-1,) + (1,) * (ndim - 1))
 
     def sample_xt(self, x0: torch.Tensor, x1: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
@@ -78,8 +82,8 @@ class DiffusionProcess:
         xt_prev = mu_x0 * x0_pred + mu_xn * x_n
         
         if nprev[0].item() > 0:
-            xt_prev = xt_prev + torch.sqrt(var) * torch.randn_like(xt_prev)
-        
+            xt_prev = xt_prev + (torch.sqrt(var) * self.noise_scale) * torch.randn_like(xt_prev)
+            
         return xt_prev
 
     def calculate_loss(
@@ -118,13 +122,16 @@ class DiffusionProcess:
         return masked.sum() / (denom.clamp_min(1.0))
 
     @torch.no_grad()
-    def sample_ddpm(self, model: torch.nn.Module, x1: torch.Tensor, n_steps: int, precision: float = 1) -> torch.Tensor:
+    def sample_ddpm(self, model: torch.nn.Module, x1: torch.Tensor, n_steps: int, precision: float = 1, n_inference_steps: Optional[int] = None) -> torch.Tensor:
         """
         Sample using I2SB reverse process (Algorithm 2 from the paper).
         """
-        assert 0 < precision <= 1.0, "precision must be in (0, 1]"
+        if n_inference_steps is not None:
+             step_size = max(1, n_steps // n_inference_steps)
+        else:
+             assert 0 < precision <= 1.0, "precision must be in (0, 1]"
+             step_size = max(1, int(1.0 / precision))
 
-        step_size = max(1, int(1.0 / precision))
         steps = list(range(0, n_steps, step_size))
 
         if steps[-1] != n_steps - 1:

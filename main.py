@@ -87,6 +87,9 @@ def main():
     # Only setup logging on main process to avoid duplicate logs/race conditions on file creation
     if accelerator.is_main_process:
         setup_logging(opt.log_dir)
+        import logging
+        import yaml
+        logging.info(f"Configuration:\n{yaml.dump(opt.__dict__, default_flow_style=False)}")
     
     if opt.mode == 'train':
         print("Mode: Training")
@@ -129,6 +132,7 @@ def main():
 
         diffusion_process = DiffusionProcess(
             beta_schedule=beta_schedule,
+            noise_scale=opt.noise_scale,
         )
 
         trainer = Trainer(
@@ -177,6 +181,7 @@ def main():
 
         diffusion_process = DiffusionProcess(
             beta_schedule=beta_schedule,
+            noise_scale=opt.noise_scale,
         )
 
         validator = Validator(

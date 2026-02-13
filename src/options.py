@@ -26,8 +26,10 @@ class Options:
 
     # Diffusion params
     timesteps: int = 4000
+    validation_timesteps: Optional[int] = None
     noise_schedule: Literal['linear', 'quadratic', 'const', 'cosine'] = 'linear'
     timesteps_schedule: Literal['linear', 'quadratic'] = 'quadratic'
+    noise_scale: float = 1.
 
     # Optimization
     mixed_precision: Literal['no', 'fp16', 'bf16'] = "no" # "no", "fp16", "bf16"
