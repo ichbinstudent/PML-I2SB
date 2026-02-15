@@ -5,6 +5,7 @@ import socket
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from accelerate import Accelerator
+import logging
 
 from src.dataset import (
     get_base_imagenet_dataset,
@@ -87,7 +88,6 @@ def main():
     # Only setup logging on main process to avoid duplicate logs/race conditions on file creation
     if accelerator.is_main_process:
         setup_logging(opt.log_dir)
-        import logging
         import yaml
         logging.info(f"Configuration:\n{yaml.dump(opt.__dict__, default_flow_style=False)}")
     
@@ -150,7 +150,7 @@ def main():
         print("Training complete.")
     
     elif opt.mode == 'validate':
-        print("Mode: Validation")
+        logging.info("Mode: Validation")
         # Load validation dataset
         val_base_dataset = get_base_imagenet_dataset(
             opt.val_data_dir,
@@ -192,9 +192,9 @@ def main():
             accelerator=accelerator
         )
 
-        print("Starting validation...")
+        logging.info("Starting validation...")
         validator.validate()
-        print("Validation complete.")
+        logging.info("Validation complete.")
 
 if __name__ == "__main__":
     main()

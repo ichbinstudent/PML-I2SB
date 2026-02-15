@@ -143,7 +143,7 @@ class Validator:
             # Compute classifier accuracy
             ca_score = total_correct_all / total_samples_all if total_samples_all > 0 else 0.0
 
-            logging.info(f"Validation completed. Classifier Accuracy: {ca_score}")
+            logging.info(f"Validation completed {self.config.degradation}. Classifier Accuracy: {ca_score}")
             return ca_score
         else:
             return None
