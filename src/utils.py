@@ -5,6 +5,7 @@ import random
 import numpy as np
 import torch
 import torchvision.utils as vutils
+from typing import Literal
 
 def _normalize_state_dict_keys(state_dict):
     cleaned = {}
@@ -230,14 +231,17 @@ def save_image_grid(X_1, X_pred, X_0, filepath, n_images=8):
     
     logging.debug(f"Saved image sample grid to {filepath}")
 
-def get_beta_schedule(schedule_name, num_diffusion_timesteps):
+def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "cosine"], num_diffusion_timesteps: int, linear_start: float = 1e-4, linear_end: float = 2e-2, symmetrize: bool = True) -> torch.Tensor:
+    logging.debug(f"Generating beta {schedule_name} schedule with {num_diffusion_timesteps} steps.")
     if schedule_name == "linear":
         scale = 1000 / num_diffusion_timesteps
-        beta_start = scale * 0.0001
-        beta_end = scale * 0.02
-        return torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
-    elif schedule_name == "const" or schedule_name == "symmetric":
-        return torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
+        beta_start = scale * linear_start
+        beta_end = scale * linear_end
+        schedule = torch.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=torch.float64)
+    elif schedule_name == "quadratic":
+        schedule = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, num_diffusion_timesteps, dtype=torch.float64) ** 2
+    elif schedule_name == "const":
+        schedule = torch.ones(num_diffusion_timesteps, dtype=torch.float64) * 1.0
     elif schedule_name == "cosine":
             def alpha_bar(t):
                 return np.cos((t + 0.008) / 1.008 * np.pi / 2) ** 2
@@ -247,7 +251,10 @@ def get_beta_schedule(schedule_name, num_diffusion_timesteps):
                 t1 = i / num_diffusion_timesteps
                 t2 = (i + 1) / num_diffusion_timesteps
                 betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
-            return torch.tensor(betas, dtype=torch.float64)
+            schedule = torch.tensor(betas, dtype=torch.float64)
     else:
         raise NotImplementedError(f"Unknown beta schedule: {schedule_name}")
-
+    if symmetrize:
+        schedule = torch.concatenate([schedule[:num_diffusion_timesteps//2], torch.flip(schedule[:num_diffusion_timesteps//2], dims=[0])], dim=0)
+    logging.debug(schedule)
+    return schedule

@@ -21,8 +21,8 @@ batch_size: 128
 num_workers: 2
 
 # Diffusion params
-noise_schedule: "linear"
-timesteps: 1000
+noise_schedule: "linear"  # options: "linear", "quadratic", "const", "cosine"
+timesteps: 3000
 
 # Logging
 log_dir: "logs_validation/blur"
