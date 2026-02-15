@@ -6,6 +6,7 @@ from typing import Literal, Optional
 import numpy as np
 import torch
 import torchvision.utils as vutils
+from typing import Literal
 
 def _normalize_state_dict_keys(state_dict: dict) -> dict:
     cleaned = {}
@@ -258,4 +259,3 @@ def get_beta_schedule(schedule_name: Literal["linear", "quadratic", "const", "co
         schedule = torch.concatenate([schedule[:num_diffusion_timesteps//2], torch.flip(schedule[:num_diffusion_timesteps//2], dims=[0])], dim=0)
     logging.debug(schedule)
     return schedule
-

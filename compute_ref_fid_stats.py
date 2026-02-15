@@ -24,6 +24,7 @@ if __name__ == "__main__":
 
     logging.info("Starting FID statistics computation...")
 
+    # compute mean and covariance
     mu, sigma = compute_fid_stats(supperres_set, opt, device)
 
     # Save statistics

@@ -119,8 +119,13 @@ def main():
         model.to(device)
 
         if opt.checkpoint_path is not None:
-            print("Loading checkpoint...")
-            load_checkpoint(model, optimizer, opt.checkpoint_path, device)
+            if accelerator.is_main_process:
+                print("Loading checkpoint...")
+            # temporary fix for loading superres checkpoints
+            if opt.degradation == 'superres-bicubic':
+                load_checkpoint_superres(model, optimizer, opt.checkpoint_path, device)
+            else:
+                load_checkpoint(model, optimizer, opt.checkpoint_path, device)
         if opt.adm_checkpoint_path is not None:
             print("Loading pretrained UNet weights...")
             load_adm_checkpoint(model, opt)
@@ -171,6 +176,19 @@ def main():
             pin_memory=torch.cuda.is_available()
         )
 
+        if opt.adm_checkpoint_path is not None:
+            if accelerator.is_main_process:
+                print("Loading pretrained UNet weights...")
+            load_adm_checkpoint(trained_model, opt)
+
+        if opt.checkpoint_path is not None:
+            if accelerator.is_main_process:
+                print("Loading checkpoint...")
+            # temporary fix for loading superres checkpoints
+            if opt.degradation == 'superres-bicubic':
+                load_checkpoint_superres(trained_model, None, opt.checkpoint_path, device)
+            else:
+                load_checkpoint(trained_model, None, opt.checkpoint_path, device)
 
         # get the trained model for validation
         model = get_model(opt)

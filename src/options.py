@@ -1,5 +1,5 @@
 import yaml
-from typing import Literal, Optional
+from typing import Optional, Literal
 
 
 class Options:

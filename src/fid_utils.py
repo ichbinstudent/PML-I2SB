@@ -13,6 +13,9 @@ from src.utils import unnormalize_to_zero_one
 
 
 def collect_features(dataset, batch_size, device):
+
+    """Collect features from the dataset using a feature extractor."""
+
     feature_extractor = build_feature_extractor(
         mode="legacy_pytorch",
         device=device,
@@ -36,6 +39,8 @@ def collect_features(dataset, batch_size, device):
     return mu, sigma
 
 def compute_fid_stats(supperres_set: bool, opt: Options, device: torch.device = "cpu"):
+
+    """Compute FID statistics (mean and covariance)."""
 
     degradation = ""
     if supperres_set:
