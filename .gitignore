@@ -229,3 +229,4 @@ job_*.out
 job_*.err
 
 fid_stats/*
+logs.old/

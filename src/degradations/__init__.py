@@ -1,3 +1,5 @@
+from typing import Literal, cast
+
 from src.options import Options
 
 def build_degradations(opt: Options, degradation_type: str):
@@ -25,13 +27,16 @@ def build_degradations(opt: Options, degradation_type: str):
         if internal_mask == "center":
             method = build_inpaint_center(opt)
         elif "freeform" in internal_mask:
-            method = build_inpaint_freeform(opt, internal_mask)
+            mask_lit = cast(Literal["10-20% freeform", "20-30% freeform", "30-40% freeform"], internal_mask)
+            method = build_inpaint_freeform(opt, mask_lit)
         else:
             raise NotImplementedError(f"Degradation type {degradation_type} not implemented.")
     elif "blur" in degradation_type:
         from .blur import build_blur
         kernel_type = degradation_type.split("-")[1]
-        method = build_blur(opt, kernel_type)
+        if kernel_type not in {"uni", "gauss"}:
+            raise ValueError(f"Unknown blur kernel type: {kernel_type}. Available types: ['uni', 'gauss']")
+        method = build_blur(opt, cast(Literal["uni", "gauss"], kernel_type))
     elif "jpeg" in degradation_type:
         from .jpeg import build_jpeg
         quality = int(degradation_type.split("-")[1])
@@ -39,7 +44,7 @@ def build_degradations(opt: Options, degradation_type: str):
     elif "superres" in degradation_type:
         from .superres import build_superres
         sr_filter = degradation_type.split("-")[1]
-        method = build_superres(opt, sr_filter, image_size=opt.image_size)
+        method = build_superres(opt, cast(Literal["bicubic", "bilinear", "pool"], sr_filter))
     else:
         raise ValueError(f"Unknown degradation type: {degradation_type}")
     

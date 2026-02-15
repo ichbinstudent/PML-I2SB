@@ -10,9 +10,9 @@ mode: 'train'  # options: 'train', 'validate'
 
 # Data paths
 train_data_dir: "./datasets/imagenet/train_set/"
-# adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
+adm_checkpoint_path: "./checkpoints/imagenet64_uncond_100M_1500K.pt"
 # val_data_dir: "./datasets/imagenet/val_set/"
-checkpoint_path: "./logs_superres_bicubic_train/checkpoints/latest_checkpoint.pth"
+# checkpoint_path: "./logs_superres_bicubic_train/checkpoints/latest_checkpoint.pth"
 
 # Training params
 image_size: 64
@@ -27,5 +27,10 @@ timesteps: 1000
 
 # Logging
 log_dir: "logs_superres_bicubic_train"
-log_interval: 10000
+log_interval: 1000
 
+# Optimization
+mixed_precision: "fp16"       # Options: "no", "fp16", "bf16"
+gradient_accumulation_steps: 1 # Increase this to simulate larger batches (e.g., 4)
+use_checkpoint: false          # Set to true to save memory (slower training)
+use_compile: true             # Set to true for PyTorch 2.0+ speedup

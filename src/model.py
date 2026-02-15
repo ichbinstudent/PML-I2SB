@@ -2,7 +2,7 @@
 Model definition for I2SB.
 
 This file imports the U-Net factory functions from the original
-OpenAI 'guided-diffusion' repository (placed in src/guided_diffusion).
+OpenAI 'improved-diffusion' repository (placed in src/improved_diffusion).
 It uses these factories to build the model specified in the I2SB paper:
 an ADM U-Net initialized with the unconditional ImageNet 256x256 checkpoint.
 
@@ -14,13 +14,13 @@ import torch
 from src.options import Options
 
 try:
-    from src.guided_diffusion.script_util import (
+    from src.improved_diffusion.script_util import (
         model_and_diffusion_defaults,
         create_model
     )
 except ImportError:
-    logging.error("Could not import guided-diffusion. "
-                  "Did you place the OpenAI repo files in src/guided_diffusion?")
+    logging.error("Could not import improved-diffusion. "
+                  "Did you place the OpenAI repo files in src/improved_diffusion?")
     raise
 
 def get_model(config: Options) -> torch.nn.Module:
@@ -29,17 +29,11 @@ def get_model(config: Options) -> torch.nn.Module:
     OpenAI factory.
     
     Args:
-        config (dict): A dictionary, typically loaded from a YAML file.
-                       
+        config (Options): An Options object containing configuration parameters.
+
     Returns:
         torch.nn.Module: The U-Net model.
     """
-    image_size = config.image_size
-    #if image_size != 256:
-    #    logging.warning(
-    #        f"Model config is optimized for 256x256, but image_size is {image_size}."
-    #    )
-
     adm_config = model_and_diffusion_defaults()
 
     adm_config.update({
